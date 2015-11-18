@@ -26,3 +26,6 @@
 *.exe
 *.out
 *.app
+
+# Compiled from cern-root
+*.d
