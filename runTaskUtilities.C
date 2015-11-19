@@ -873,7 +873,7 @@ void GetPodOutput ( TString aaf )
   TString copyCommand = GetProofInfo("copycommand",aaf);
   TString remoteDir = GetProofInfo("proofserver",aaf);
   remoteDir += Form(":%s",GetPodOutDir().Data());
-  PerformAction(Form("%s --exclude=\"*/\" --exclude=\"*.so\" --exclude=\"*.d\" --exclude=\"*.par\"%s/ ./",copyCommand.Data(),remoteDir.Data()),yesToAll);
+  PerformAction(Form("%s --exclude=\"*/\" --exclude=\"*.so\" --exclude=\"*.d\" --exclude=\"*.par\" %s/ ./",copyCommand.Data(),remoteDir.Data()),yesToAll);
 }
 
 //______________________________________________________________________________
