@@ -832,13 +832,20 @@ void WritePodExecutable ( )
 }
 
 //______________________________________________________________________________
-void ConnectToPod ( TString aaf, TString softVersions )
+void ConnectToPod ( TString aaf, TString softVersions, TString analysisOptions )
 {
   if ( ! IsPod(aaf) ) return;
 
   TString copyCommand = GetProofInfo("copycommand",aaf);
   TString openCommand = GetProofInfo("opencommand",aaf);
   TString aafEnter = GetProofInfo("aafenter",aaf);
+
+  Int_t nWorkers = 88;
+  TString nWorkersStr = analysisOptions(TRegexp("NWORKERS=[0-9]+"));
+  if ( ! nWorkersStr.IsNull() ) {
+    nWorkersStr.ReplaceAll("NWORKERS=","");
+    if ( nWorkersStr.IsDigit() ) nWorkers = nWorkersStr.Atoi();
+  }
 
   Bool_t yesToAll = kTRUE;
   TString remoteDir = GetProofInfo("proofserver",aaf);
@@ -852,7 +859,7 @@ void ConnectToPod ( TString aaf, TString softVersions )
 //  remoteDir.ReplaceAll(Form("%s:",remote.Data()),"");
 //  printf("Please execute this on the remote machine:\n");
 //  printf("\n. %s/runPod.sh [nWorkers]\n\n",GetPodOutDir().Data());
-  TString execCommand = Form("\"\" \"%s/runPod.sh 88\"",GetPodOutDir().Data());
+  TString execCommand = Form("\"\" \"%s/runPod.sh %i\"",GetPodOutDir().Data(),nWorkers);
   gSystem->Exec(Form("%s '%s %s'", openCommand.Data(),GetProofInfo("aafenter",aaf).Data(),execCommand.Data()));
 //  gSystem->Exec(Form("%s -t %s", openCommand.Data(),GetProofInfo("aafenter",aaf).Data()));
 }
@@ -1002,7 +1009,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
   else if ( sMode == "proof" ) {
     if ( runMode == "test" ) analysisMode = "prooflite";
     if ( ! IsPod(analysisMode) || IsPodMachine(analysisMode) ) LoadLibsProof(libraries,includePaths,analysisMode,softVersions);
-    else ConnectToPod(analysisMode,softVersions);
+    else ConnectToPod(analysisMode,softVersions,analysisOptions);
   }
 
   /// Some utilities for muon analysis
