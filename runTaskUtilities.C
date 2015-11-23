@@ -48,6 +48,7 @@
 #include "AliAODInputHandler.h"
 #include "AliAODHandler.h"
 #include "AliMCEventHandler.h"
+#include "AliMultiInputEventHandler.h"
 
 // ANALYSIS includes
 #include "AliAnalysisManager.h"
@@ -65,7 +66,7 @@ void PrintOptions()
   printf("  inputName: <runNumber> <fileWithRunList> <rootFileToAnalyse(absolute path)>\n");
   printf("  inputOptions: Data/MC FULL/NOVTX/EMBED AOD/ESD <period> <pass> <dataPattern> <dataDir>\n");
   printf("  softVersions: aliphysics=version,aliroot=version,root=version\n");
-  printf("  analysisOptions: NOPHYSSEL NOCENTR\n");
+  printf("  analysisOptions: NOPHYSSEL NOCENTR MIXED\n");
 }
 
 //_______________________________________________________
@@ -1054,11 +1055,18 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
   map->Print();
   printf("\n");
 
+  AliMultiInputEventHandler* multiHandler = 0x0;
+  if ( analysisOptions.Contains("MIXED") ) {
+    multiHandler = new AliMultiInputEventHandler();
+    mgr->SetInputEventHandler(multiHandler);
+  }
+
   // input handler
   if ( isAOD ) {
     AliAODInputHandler* aodH = new AliAODInputHandler();
     //aodH->SetCheckStatistics(kTRUE); // Force to get statistics info from EventStat_temp.root // REMEMBER TO CHECK
-    mgr->SetInputEventHandler(aodH);
+    if ( multiHandler ) multiHandler->AddInputEventHandler(aodH);
+    else mgr->SetInputEventHandler(aodH);
   }
   else {
     AliESDInputHandler* esdH = new AliESDInputHandler();
@@ -1067,12 +1075,15 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
       esdH->SetInactiveBranches("*");
       esdH->SetActiveBranches("MuonTracks MuonClusters MuonPads AliESDRun. AliESDHeader. AliMultiplicity. AliESDFMD. AliESDVZERO. AliESDTZERO. SPDVertex. PrimaryVertex. AliESDZDC. SPDPileupVertices");
     }
-    mgr->SetInputEventHandler(esdH);
+
+    if ( multiHandler ) multiHandler->AddInputEventHandler(esdH);
+    else mgr->SetInputEventHandler(esdH);
     
     if ( isMC ){
       // Monte Carlo handler
       AliMCEventHandler* mcHandler = new AliMCEventHandler();
-      mgr->SetMCtruthEventHandler(mcHandler);
+      if ( multiHandler ) multiHandler->AddInputEventHandler(mcHandler);
+      else mgr->SetMCtruthEventHandler(mcHandler);
       printf("\nMC event handler requested\n\n");
     }
 
