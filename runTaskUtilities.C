@@ -796,9 +796,7 @@ Bool_t EditVafConf ( TString aaf, TString softVersions )
     PerformAction(rmdirCmd.Data(),yesToAll);
     return kFALSE;
   }
-  TString localFileTmp = Form("%s_tmp",localFile.Data());
-  PerformAction(Form("cp %s %s",localFile.Data(),localFileTmp.Data()),yesToAll);
-  command = Form("sed 's/VafAliPhysicsVersion=.*/VafAliPhysicsVersion=%s/' %s > %s; rm %s",GetSoftVersion("aliphysics",softVersions).Data(),localFileTmp.Data(),localFile.Data(),localFileTmp.Data());
+  command = Form("sed -i '' 's/VafAliPhysicsVersion=.*/VafAliPhysicsVersion=%s/' %s",GetSoftVersion("aliphysics",softVersions).Data(),localFile.Data());
   PerformAction(command.Data(),yesToAll);
   command = Form("%s %s/ %s/",copyCommand.Data(),localDir.Data(),remoteDir.Data());
   PerformAction(command.Data(),yesToAll);

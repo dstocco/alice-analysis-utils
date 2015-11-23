@@ -44,16 +44,6 @@ if [ -z $subDir ]; then
   read subDir
 fi
 
-#### A useful function
-function UpdateFile() {
-  fileToUpdate="$1"
-  sedChange="$2"
-  if [ "$sedChange" != "" ]; then
-    tmpFile="tmp_$fileToUpdate"
-    sed "$sedChange" $fileToUpdate > $tmpFile
-    mv $tmpFile $fileToUpdate
-  fi
-}
 
 #### Syncronize with remote directory
 baseLocalDir="$PWD"
@@ -184,7 +174,7 @@ changeCommand=""
 for irun in $onlyInQA; do
   changeCommand="${changeCommand}s/runTab{$irun}/runTab[\\\notInLogColor]{$irun}/;"
 done
-UpdateFile "$texFile" "$changeCommand"
+sed -i "" "$changeCommand" $texFile
 
 
 ##### If old tex file existed, update summary and run-by-run information
@@ -201,7 +191,7 @@ if [ -e "$oldTexFile" ]; then
     fi
   done
 #  echo "$changeCommand"
-  UpdateFile "$texFile" "$changeCommand"
+  sed -i "" "$changeCommand" $texFile
 
   # Use the summary and ending from the existing file
   sep1='frametitle{Number of events per trigger}'
@@ -211,7 +201,7 @@ if [ -e "$oldTexFile" ]; then
   cat $oldTexFile | sed -n "1,/$sep1/p" | grep -v "$sep1" > $summary
   body="body_$texFile"
   cat $texFile | sed -n "/$sep1/,/$sep2/p" | grep -v "$sep2" > $body
-  ending="end)$texFile"
+  ending="end_$texFile"
   cat $oldTexFile | sed -n "/$sep2/,/\end{document}/p" > $ending
 
   cat $summary $body $ending > $texFile
@@ -220,8 +210,6 @@ if [ -e "$oldTexFile" ]; then
 #  mv $tmpTexFile $generatedTexFile
 #  diff --changed-group-format='%<' --old-group-format='%<' --new-group-format='%>' $oldTexFile $generatedTexFile > $tmpTexFile
 fi
-
-
 
 
 
