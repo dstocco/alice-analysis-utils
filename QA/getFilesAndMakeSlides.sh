@@ -164,37 +164,11 @@ while [ "$answer" != "y" ]; do
   read answer
 done
 
-inQAandLogbook=`comm -12 <(sort $runListQA) <(sort $runListLogbook) | xargs`
-onlyInQA=`comm -23 <(sort $runListQA) <(sort $runListLogbook) | xargs`
-onlyInLogbook=`comm -13 <(sort $runListQA) <(sort $runListLogbook) | xargs`
-
-
-##### Change color of table lines for runs not in the logbook
-changeCommand=""
-for irun in $onlyInQA; do
-  changeCommand="${changeCommand}s/runTab{$irun}/runTab[\\\notInLogColor]{$irun}/;"
-done
-sed -i "" "$changeCommand" $texFile
-
 
 ##### If old tex file existed, update summary and run-by-run information
 if [ -e "$oldTexFile" ]; then
-  # Update summary run-by-run info
-  runListQAstr=$(cat $runListQA | xargs)
-  changeCommand=""
-  sedCut='s/^[[:space:]]*//;s/\\/\\\\/g;s/\[/\\\[/g;s/\]/\\\]/g;s/\?/\\\?/'
-  for irun in $runListQAstr; do
-    infoRun=$(grep "runTab" $oldTexFile | grep $irun | grep -v "{}" | sed "$sedCut")
-    if [ "$infoRun" != "" ]; then
-      genRun=$(grep "runTab" $texFile | grep $irun | sed "$sedCut")
-      changeCommand="${changeCommand}s/$genRun/$infoRun/;"
-    fi
-  done
-#  echo "$changeCommand"
-  sed -i "" "$changeCommand" $texFile
-
   # Use the summary and ending from the existing file
-  sep1='frametitle{Number of events per trigger}'
+  sep1='frametitle{Run summary'
   sep2='frametitle{Hardware issues}'
 
   summary="summary_$texFile"
@@ -207,10 +181,35 @@ if [ -e "$oldTexFile" ]; then
   cat $summary $body $ending > $texFile
   rm $summary $body $ending
 
+# Update summary run-by-run info
+  runListQAstr=$(cat $runListQA | xargs)
+  changeCommand=""
+  sedCut='s/^[[:space:]]*//;s/\\/\\\\/g;s/\[/\\\[/g;s/\]/\\\]/g;s/\?/\\\?/'
+  for irun in $runListQAstr; do
+    infoRun=$(grep "runTab" $oldTexFile | grep $irun | grep -v "{}" | sed "$sedCut")
+    if [ "$infoRun" != "" ]; then
+      genRun=$(grep "runTab" $texFile | grep $irun | sed "$sedCut")
+      changeCommand="${changeCommand}s/$genRun/$infoRun/;"
+    fi
+  done
+  #  echo "$changeCommand"
+  sed -i "" "$changeCommand" $texFile
+
 #  mv $tmpTexFile $generatedTexFile
 #  diff --changed-group-format='%<' --old-group-format='%<' --new-group-format='%>' $oldTexFile $generatedTexFile > $tmpTexFile
 fi
 
+inQAandLogbook=`comm -12 <(sort $runListQA) <(sort $runListLogbook) | xargs`
+onlyInQA=`comm -23 <(sort $runListQA) <(sort $runListLogbook) | xargs`
+onlyInLogbook=`comm -13 <(sort $runListQA) <(sort $runListLogbook) | xargs`
+
+
+##### Change color of table lines for runs not in the logbook
+changeCommand=""
+for irun in $onlyInQA; do
+changeCommand="${changeCommand}s/runTab{$irun}/runTab[\\\notInLogColor]{$irun}/;"
+done
+sed -i "" "$changeCommand" $texFile
 
 
 compileTexLog="pdflatex.log"
