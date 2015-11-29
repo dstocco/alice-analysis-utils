@@ -700,7 +700,8 @@ Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TSt
   list->Add(new TNamed("ALIROOT_MODE", alirootMode.Data()));
   list->Add(new TNamed("ALIROOT_EXTRA_LIBS", extraLibs.Data()));
   list->Add(new TNamed("ALIROOT_EXTRA_INCLUDES", extraIncs.Data()));
-  list->Add(new TNamed("ALIROOT_ENABLE_ALIEN", "1"));
+  if ( aaf != "saf") // Temporary fix for saf3: REMEMBER TO CUT this line when issue fixed
+    list->Add(new TNamed("ALIROOT_ENABLE_ALIEN", "1"));
   TString mainPackage = "";
   if ( proofServer == "localhost" ) mainPackage = "$ALICE_ROOT/ANALYSIS/macros/AliRootProofLite.par";
   else if ( IsPod(aaf) ) {
@@ -985,7 +986,8 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
   analysisMode.ToLower();
   runMode.ToLower();
   analysisOptions.ToUpper();
-  
+
+  if ( IsPodMachine(analysisMode) ) inputName = GetDatasetName();
   gSystem->ExpandPathName(inputName);
 
   TMap* map = ParseInfo(inputName,inputOptions);
