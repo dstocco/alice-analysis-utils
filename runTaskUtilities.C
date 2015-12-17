@@ -66,7 +66,7 @@ void PrintOptions()
   printf("  inputName: <runNumber> <fileWithRunList> <rootFileToAnalyse(absolute path)>\n");
   printf("  inputOptions: Data/MC FULL/NOVTX/EMBED AOD/ESD <period> <pass> <dataPattern> <dataDir>\n");
   printf("  softVersions: aliphysics=version,aliroot=version,root=version\n");
-  printf("  analysisOptions: NOPHYSSEL NOCENTR MIXED\n");
+  printf("  analysisOptions: NOPHYSSEL NOCENTR OLDCENTR MIXED\n");
 }
 
 //_______________________________________________________
@@ -493,14 +493,14 @@ Bool_t CopyAdditionalFilesLocally ( TString additionalFile, Bool_t warnOnMissing
 //_______________________________________________________
 Bool_t CopyDatasetLocally ( TString inputName, TString analysisMode )
 {
-  if ( inputName.EndsWith(".root") ) return kFALSE;
-
+  /// Copy dataset locally
   TString inFilename = inputName;
   TString tmpFilename = "tmp_dataset.txt";
   if ( gSystem->AccessPathName(inputName) ) {
     inFilename = tmpFilename;
     gSystem->Exec(Form("echo '%s' > %s",inputName.Data(),inFilename.Data()));
   }
+  else if ( inputName.EndsWith(".root") ) return kFALSE;
 
 //  ofstream outFile(Form("%s/%s",GetOutDirName().Data(),GetDatasetName().Data()));
   ofstream outFile(GetDatasetName().Data());
@@ -1097,20 +1097,33 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
 #ifndef TESTCOMPILATION
     Bool_t treatAsMC = ( isMC && ! isEmbed );
     if ( ! analysisOptions.Contains("NOPHYSSEL") ) {
+      printf("Adding physics selection task\n");
       gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
       AliPhysicsSelectionTask* physSelTask = AddTaskPhysicsSelection(treatAsMC);
       if ( ! treatAsMC ) physSelTask->GetPhysicsSelection()->SetUseBXNumbers(kFALSE); // Needed if you want to merge runs with different running scheme
       physSelTask->GetPhysicsSelection()->SetPassName(GetPass(inputName,inputOptions));
     }
-    
-    if ( ! analysisOptions.Contains("NOCENTR") ) {
+
+    // Old centrality framework
+    if ( ! analysisOptions.Contains("NOCENTR") && analysisOptions.Contains("OLDCENTR") ) {
+      printf("Adding old centrality task\n");
       gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
       AliCentralitySelectionTask* centralityTask = AddTaskCentrality();
       if ( treatAsMC ) centralityTask->SetMCInput();
     }
 #endif
   }
-  
+
+#ifndef TESTCOMPILATION
+  if ( ! analysisOptions.Contains("NOCENTR") && ! analysisOptions.Contains("OLDCENTR") ) {
+    printf("Adding centrality task\n");
+    gROOT->LoadMacro("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C");
+    AliMultSelectionTask* centralityTask = AddTaskMultSelection(kFALSE);
+    centralityTask->SetUseDefaultCalib(kTRUE); // data
+    centralityTask->SetUseDefaultMCCalib(kTRUE); // MC
+  }
+#endif
+
 //  if ( analysisOptions.Contains("TEST") ) {
 //    gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddTaskBaseLine.C");
 //    AliAnalysisTaskBaseLine* baseLineTask = AddTaskBaseLine();
