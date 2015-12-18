@@ -66,7 +66,7 @@ Bool_t SetCentralityBins ( TString period, AliMuonEventCuts* eventCuts )
   
   TString sCentrBins = "";
   if ( period == "LHC13d" || period == "LHC13e" || period == "LHC13f" ) {
-    sCentrBins = "-5.,0.,20.,40.,60.,80.,100.,105.";
+    sCentrBins = "-5.,0.,2.,5.,20.,40.,60.,80.,100.,105.";
   }
   else return kFALSE;
   
