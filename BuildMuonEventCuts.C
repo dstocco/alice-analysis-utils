@@ -16,7 +16,9 @@
 //_______________________________________
 Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts )
 {
-  TString trigClasses = "", trigLevels = "", trigInputs = "";
+  TString trigClasses = "kINT7,kMB,kCentral,kSemiCentral,kMUS7:Lpt,kMUSPB:Lpt,kMUSH7:Hpt,kMUU7:Lpt2,kINT8,kMuonSingleLowPt8:Lpt,kMuonSingleHighPt8:Hpt,kMuonUnlikeLowPt8:Lpt2,kMuonUnlikeLowPt0:Lpt2";
+//  TString trigLevels = "";
+  TString trigInputs = "";
   
   if ( isMC ) {
 //    trigClasses = "ANY,CM*,MU*";
@@ -44,6 +46,9 @@ Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts
 //      trigClasses = "CINT7-B-NOPF-ALLNOTRD,CINT7-B-NOPF-ALLNOTRD&0MSL,CINT7-B-NOPF-ALLNOTRD&0MSH,CMSL7-B-NOPF-MUON,CMSL7-B-NOPF-MUON&0MSH,CMSH7-B-NOPF-MUON";
       trigClasses = "CINT7-B-NOPF-ALLNOTRD,CINT7-B-NOPF-ALLNOTRD&0MSL,CINT7-B-NOPF-ALLNOTRD&0MSH,CMSL7-B-NOPF-MUON:Lpt,CMSL7-B-NOPF-MUON&0MSH:Lpt,CMSH7-B-NOPF-MUON:Hpt";
       trigInputs = "0MSL:12,0MSH:13,0MUL:14";
+    }
+    else if ( period == "LHC15o" ) {
+      trigInputs = "0MSL:17,0MSH:18,0MLL:19,0MUL:20";
     }
   }
   
