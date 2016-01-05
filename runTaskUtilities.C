@@ -707,8 +707,15 @@ Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TSt
   else if ( IsPod(aaf) ) {
     TString remotePar = "http://alibrary.web.cern.ch/alibrary/vaf/AliceVaf.par";
     mainPackage = gSystem->BaseName(remotePar.Data());
-    TFile::Cp(remotePar.Data(), mainPackage.Data());
-    if ( gSystem->AccessPathName(mainPackage) ) printf("Error: cannot get %s from %s\n",mainPackage.Data(),remotePar.Data());
+    if ( aaf != "saf" || gSystem->AccessPathName(mainPackage) ) {
+      // In principle AliceVaf.par should be always taken from the webpage (constantly updated version)
+      // However, in SAF, one sometimes need to have custom AliceVaf.par
+      // Hence, if an AliceVaf.par is found in the local dir, it is used instead of the official one
+      printf("Getting package %s\n",remotePar.Data());
+      TFile::Cp(remotePar.Data(), mainPackage.Data());
+      if ( gSystem->AccessPathName(mainPackage) ) printf("Error: cannot get %s from %s\n",mainPackage.Data(),remotePar.Data());
+    }
+    else printf("Using custom %s\n",mainPackage.Data());
   }
   else {
     mainPackage = GetSoftVersion("aliphysics",softVersions);
