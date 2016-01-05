@@ -815,10 +815,12 @@ Bool_t EditVafConf ( TString aaf, TString softVersions )
 
 
 //______________________________________________________________________________
-void WritePodExecutable ( )
+void WritePodExecutable ( TString analysisOptions )
 {
   TString filename = "runPod.sh";
   ofstream outFile(filename.Data());
+  analysisOptions.ToUpper();
+  Bool_t splitPerRun = analysisOptions.Contains("SPLIT");
   outFile << "#!/bin/bash" << endl;
   outFile << "nWorkers=${1-88}" << endl;
   outFile << "vafctl start" << endl;
@@ -826,6 +828,25 @@ void WritePodExecutable ( )
   outFile << "vafwait $nWorkers" << endl;
   outFile << "export TASKDIR=\"$HOME/" << GetPodOutDir().Data() << "\"" << endl;
   outFile << "cd $TASKDIR" << endl;
+  TString dsName = GetDatasetName();
+  if ( splitPerRun ) {
+    outFile << "fileList=$(find . -maxdepth 1 -type f ! -name " << dsName.Data() << " | xargs)" << endl;
+    outFile << "while read -r line || [[ -n \"$line\" ]]; do" << endl;
+    outFile << "  runNum=$(echo \"$line\" | grep -oE [0-9][0-9][0-9][1-9][0-9][0-9][0-9][0-9][0-9] | xargs)" << endl;
+    outFile << "  if [ -z \"$runNum\" ]; then" << endl;
+    outFile << "    runNum=$(echo \"$line\" | grep -oE [1-9][0-9][0-9][0-9][0-9][0-9] | xargs)" << endl;
+    outFile << "  fi" << endl;
+    outFile << "  if [[ -z \"$runNum\" || -e \"$runNum\" ]]; then" << endl;
+    outFile << "    echo \"Cannot find run number in $line\"" << endl;
+    outFile << "    continue" << endl;
+    outFile << "  fi" << endl;
+    outFile << "  echo \"\"" << endl;
+    outFile << "  echo \"Analysing run $runNum\"" << endl;
+    outFile << "  mkdir $runNum" << endl;
+    outFile << "  cd $runNum" << endl;
+    outFile << "  for ifile in $fileList; do ln -s ../$ifile; done" << endl;
+    outFile << "  echo \"$line\" > " << dsName.Data() << endl;
+  }
   TString rootCmd = gSystem->GetFromPipe("tail -n 1 $HOME/.root_hist");
   rootCmd.ReplaceAll("  "," ");
   rootCmd.Remove(TString::kLeading,' ');
@@ -833,6 +854,17 @@ void WritePodExecutable ( )
   rootCmd.ReplaceAll(".x ","root -b -q '");
   rootCmd.Append("'");
   outFile << rootCmd.Data() << endl;
+  if ( splitPerRun ) {
+    outFile << "  cd $TASKDIR" << endl;
+    outFile << "done < " << dsName.Data() << endl;
+    outFile << "outNames=$(find $PWD/*/ -type f -name \"*.root\" -exec basename {} + | sort -u | xargs)" << endl;
+    outFile << "for ifile in $outNames; do" << endl;
+    TString mergeList = "mergeList.txt";
+    outFile << "  find $PWD/*/ -name \"$ifile\" > " << mergeList.Data() << endl;
+    outFile << "  root -b -q $ALICE_PHYSICS/PWGPP/MUON/lite/mergeGridFiles.C\\(\\\"$ifile\\\",\\\"" << mergeList.Data() << "\\\",\\\"\\\"\\)" << endl;
+    outFile << "  rm " << mergeList.Data() << endl;
+    outFile << "done" << endl;
+  }
 //  outFile << "root -b <<EOF" << endl;
 //  outFile << rootCmd.Data() << endl;
 //  outFile << ".q" << endl;
@@ -863,7 +895,7 @@ void ConnectToPod ( TString aaf, TString softVersions, TString analysisOptions )
   TString remoteDir = GetProofInfo("proofserver",aaf);
   remoteDir += Form(":%s",GetPodOutDir().Data());
   TString baseExclude = "--exclude=\"*/\" --exclude=\"*.log\" --exclude=\"outputs_valid\" --exclude=\"*.xml\" --exclude=\"*.jdl\" --exclude=\"plugin_test_copy\" --exclude=\"*.so\" --exclude=\"*.d\"";
-  TString command = Form("%s --delete %s ./ %s/",copyCommand.Data(),baseExclude.Data(),remoteDir.Data());
+  TString command = Form("%s --delete-excluded %s ./ %s/",copyCommand.Data(),baseExclude.Data(),remoteDir.Data());
   PerformAction(command,yesToAll);
 //  command = Form("%s %s %s %s",baseSync.Data(),baseExclude.Data(),localDir.Data(),remoteDir.Data());
 //  PerformAction(command,yesToAll);
@@ -984,7 +1016,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
                        TString inputName = "runList.txt",
                        TString inputOptions = "",
                        TString softVersions = "",
-                       TString analysisOptions = "SAF",
+                       TString analysisOptions = "",
                        TString libraries = "",
                        TString includePaths = "",
                        TString baseOutDir = "",
@@ -1003,7 +1035,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     if ( ! CopyFilesLocally(libraries,inputName,analysisMode) ) return 0x0;
     if ( IsPod(analysisMode) ) {
       CopyAdditionalFilesLocally("$TASKDIR/runTaskUtilities.C $TASKDIR/BuildMuonEventCuts.C $TASKDIR/SetupMuonBasedTasks.C",kFALSE);
-      WritePodExecutable();
+      WritePodExecutable(analysisOptions);
     }
     LoadLibsLocally(libraries,includePaths);
   }
