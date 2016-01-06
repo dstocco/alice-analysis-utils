@@ -64,7 +64,7 @@ void PrintOptions()
   printf("  runMode: test full merge terminate\n");
   printf("  analysisMode: local grid saf saf2 vaf terminateonly\n");
   printf("  inputName: <runNumber> <fileWithRunList> <rootFileToAnalyse(absolute path)>\n");
-  printf("  inputOptions: Data/MC FULL/NOVTX/EMBED AOD/ESD <period> <pass> <dataPattern> <dataDir>\n");
+  printf("  inputOptions: Data/MC FULL/NOVTX/EMBED AOD/ESD SPLIT <period> <pass> <dataPattern> <dataDir>\n");
   printf("  softVersions: aliphysics=version,aliroot=version,root=version\n");
   printf("  analysisOptions: NOPHYSSEL NOCENTR OLDCENTR MIXED\n");
 }
@@ -831,13 +831,16 @@ void WritePodExecutable ( TString analysisOptions )
   TString dsName = GetDatasetName();
   if ( splitPerRun ) {
     outFile << "fileList=$(find . -maxdepth 1 -type f ! -name " << dsName.Data() << " | xargs)" << endl;
-    outFile << "while read -r line || [[ -n \"$line\" ]]; do" << endl;
-    outFile << "  runNum=$(echo \"$line\" | grep -oE [0-9][0-9][0-9][1-9][0-9][0-9][0-9][0-9][0-9] | xargs)" << endl;
+    outFile << "while read line; do" << endl;
+    outFile << "  runNum=$(echo \"$line\" | grep -oE '[0-9][0-9][0-9][1-9][0-9][0-9][0-9][0-9][0-9]' | xargs)" << endl;
     outFile << "  if [ -z \"$runNum\" ]; then" << endl;
     outFile << "    runNum=$(echo \"$line\" | grep -oE [1-9][0-9][0-9][0-9][0-9][0-9] | xargs)" << endl;
     outFile << "  fi" << endl;
-    outFile << "  if [[ -z \"$runNum\" || -e \"$runNum\" ]]; then" << endl;
+    outFile << "  if [ -z \"$runNum\" ]; then" << endl;
     outFile << "    echo \"Cannot find run number in $line\"" << endl;
+    outFile << "    continue" << endl;
+    outFile << "   elif [ -e \"$runNum\" ]; then" << endl;
+    outFile << "    echo \"Run number already processed: skip\"" << endl;
     outFile << "    continue" << endl;
     outFile << "  fi" << endl;
     outFile << "  echo \"\"" << endl;
@@ -855,7 +858,6 @@ void WritePodExecutable ( TString analysisOptions )
   rootCmd.Append("'");
   outFile << rootCmd.Data() << endl;
   if ( splitPerRun ) {
-    outFile << "  cd $TASKDIR" << endl;
     outFile << "done < " << dsName.Data() << endl;
     outFile << "outNames=$(find $PWD/*/ -type f -name \"*.root\" -exec basename {} + | sort -u | xargs)" << endl;
     outFile << "for ifile in $outNames; do" << endl;
