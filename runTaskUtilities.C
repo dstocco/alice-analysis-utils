@@ -858,6 +858,7 @@ void WritePodExecutable ( TString analysisOptions )
   rootCmd.Append("'");
   outFile << rootCmd.Data() << endl;
   if ( splitPerRun ) {
+    outFile << "cd $TASKDIR" << endl;
     outFile << "done < " << dsName.Data() << endl;
     outFile << "outNames=$(find $PWD/*/ -type f -name \"*.root\" -exec basename {} + | sort -u | xargs)" << endl;
     outFile << "for ifile in $outNames; do" << endl;
@@ -897,7 +898,8 @@ void ConnectToPod ( TString aaf, TString softVersions, TString analysisOptions )
   TString remoteDir = GetProofInfo("proofserver",aaf);
   remoteDir += Form(":%s",GetPodOutDir().Data());
   TString baseExclude = "--exclude=\"*/\" --exclude=\"*.log\" --exclude=\"outputs_valid\" --exclude=\"*.xml\" --exclude=\"*.jdl\" --exclude=\"plugin_test_copy\" --exclude=\"*.so\" --exclude=\"*.d\"";
-  TString command = Form("%s --delete-excluded %s ./ %s/",copyCommand.Data(),baseExclude.Data(),remoteDir.Data());
+  TString syncOpt = analysisOptions.Contains("resume",TString::kIgnoreCase) ? "--delete" : "--delete-excluded";
+  TString command = Form("%s %s %s ./ %s/",copyCommand.Data(),syncOpt.Data(),baseExclude.Data(),remoteDir.Data());
   PerformAction(command,yesToAll);
 //  command = Form("%s %s %s %s",baseSync.Data(),baseExclude.Data(),localDir.Data(),remoteDir.Data());
 //  PerformAction(command,yesToAll);
