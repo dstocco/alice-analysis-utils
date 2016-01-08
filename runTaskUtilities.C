@@ -860,7 +860,7 @@ void WritePodExecutable ( TString analysisOptions )
   if ( splitPerRun ) {
     outFile << "cd $TASKDIR" << endl;
     outFile << "done < " << dsName.Data() << endl;
-    outFile << "outNames=$(find $PWD/*/ -type f -name \"*.root\" -exec basename {} + | sort -u | xargs)" << endl;
+    outFile << "outNames=$(find $PWD/*/ -type f -name \"*.root\" -exec basename {} \\; | sort -u | xargs)" << endl;
     outFile << "for ifile in $outNames; do" << endl;
     TString mergeList = "mergeList.txt";
     outFile << "  find $PWD/*/ -name \"$ifile\" > " << mergeList.Data() << endl;
