@@ -280,6 +280,7 @@ TString GetGridQueryVal ( TString queryString, TString keyword )
     }
   }
   delete arr;
+  if ( found.IsNull() ) printf("Warning: cannot find %s in %s\n",keyword.Data(),queryString.Data());
   return found;
 }
 
@@ -312,6 +313,7 @@ TString GetDataDir ( TString queryString )
 {
   TString basePath = GetGridQueryVal(queryString,"BasePath");
   TString runNum = GetRunNumber(queryString);
+  if ( basePath.IsNull() ) return "";
   Int_t idx = basePath.Index(runNum);
   basePath.Remove(idx-1);
   return basePath;
@@ -323,6 +325,7 @@ TString GetDataPattern ( TString queryString )
   TString basePath = GetGridQueryVal(queryString,"BasePath");
   TString fileName = GetGridQueryVal(queryString,"FileName");
   TString runNum = GetRunNumber(queryString);
+  if ( basePath.IsNull() || fileName.IsNull() ) return "";
   Int_t idx = basePath.Index(runNum) + runNum.Length();
   basePath.Remove(0,idx+1);
   if ( ! basePath.EndsWith("/") ) basePath.Append("/");
