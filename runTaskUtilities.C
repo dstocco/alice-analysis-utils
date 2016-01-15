@@ -708,17 +708,20 @@ Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TSt
   TString mainPackage = "";
   if ( proofServer == "localhost" ) mainPackage = "$ALICE_ROOT/ANALYSIS/macros/AliRootProofLite.par";
   else if ( IsPod(aaf) ) {
-    TString remotePar = "http://alibrary.web.cern.ch/alibrary/vaf/AliceVaf.par";
+    TString remotePar = ( aaf == "saf" ) ? "https://github.com/aphecetche/aphecetche.github.io/blob/master/saf/saf3/AliceVaf.par?raw=true" : "http://alibrary.web.cern.ch/alibrary/vaf/AliceVaf.par";
     mainPackage = gSystem->BaseName(remotePar.Data());
-    if ( aaf != "saf" || gSystem->AccessPathName(mainPackage) ) {
-      // In principle AliceVaf.par should be always taken from the webpage (constantly updated version)
-      // However, in SAF, one sometimes need to have custom AliceVaf.par
-      // Hence, if an AliceVaf.par is found in the local dir, it is used instead of the official one
+    mainPackage.Remove(mainPackage.Index("?"));
+//    if ( aaf != "saf" || gSystem->AccessPathName(mainPackage) ) {
       printf("Getting package %s\n",remotePar.Data());
       TFile::Cp(remotePar.Data(), mainPackage.Data());
       if ( gSystem->AccessPathName(mainPackage) ) printf("Error: cannot get %s from %s\n",mainPackage.Data(),remotePar.Data());
-    }
-    else printf("Using custom %s\n",mainPackage.Data());
+//    }
+//    else {
+//    // In principle AliceVaf.par should be always taken from the webpage (constantly updated version)
+//    // However, in SAF, one sometimes need to have custom AliceVaf.par
+//    // Hence, if an AliceVaf.par is found in the local dir, it is used instead of the official one
+//      printf("Using custom %s\n",mainPackage.Data());
+//    }
   }
   else {
     mainPackage = GetSoftVersion("aliphysics",softVersions);
