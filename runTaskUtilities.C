@@ -288,6 +288,7 @@ TString GetGridQueryVal ( TString queryString, TString keyword )
 TString GetRunNumber ( TString queryString )
 {
   TString found = "";
+  queryString.ReplaceAll("*",""); // Add protection for datasets with a star inside
   for ( Int_t ndigits=9; ndigits>=6; ndigits-- ) {
     TString sre = "";
     for ( Int_t idigit=0;idigit<ndigits; idigit++ ) sre += "[0-9]";
