@@ -772,21 +772,29 @@ TObject* CreateInputObject ( TString runMode, TString analysisMode, TString inpu
       }
       inFile.close();
     }
-    if (chain) chain->ls();
+    if (chain) chain->GetListOfFiles()->ls();
     return chain;
   }
   else if ( sMode == "proof") {
     TString outName = "";
-    if ( analysisMode == "prooflite" ) {
-      TFileCollection* coll = new TFileCollection();
-      coll->AddFromFile(inputName.Data());
-      outName = "test_collection";
-      gProof->RegisterDataSet(outName.Data(), coll, "OV");
+    TFileCollection* fc = 0x0;
+    if ( inputName.EndsWith(".root") ) {
+      // Assume this is a collection
+      if ( IsPodMachine(analysisMode) ) inputName = gSystem->BaseName(inputName.Data());
+      TFile* file = TFile::Open(inputName.Data());
+      fc = static_cast<TFileCollection*>(file->FindObjectAny("dataset"));
+      file->Close();
     }
-    else {
-      if ( analysisMode == "vaf" ) outName = gSystem->GetFromPipe(Form("cat %s",GetDatasetName().Data()));
-      else outName = GetDatasetName().Data();
+    else if ( analysisMode == "prooflite" || runMode == "test" ) {
+      fc = new TFileCollection("dataset");
+      fc->AddFromFile(inputName.Data());
+//      outName = "test_collection";
+//      gProof->RegisterDataSet(outName.Data(), coll, "OV");
     }
+    if ( fc ) return fc;
+
+    if ( analysisMode == "vaf" ) outName = gSystem->GetFromPipe(Form("cat %s",GetDatasetName().Data()));
+    else outName = GetDatasetName().Data();
 
     TObjString *output = new TObjString(outName);
     return output;
@@ -1046,6 +1054,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     if ( ! CopyFilesLocally(libraries,inputName,analysisMode) ) return 0x0;
     if ( IsPod(analysisMode) ) {
       CopyAdditionalFilesLocally("$TASKDIR/runTaskUtilities.C $TASKDIR/BuildMuonEventCuts.C $TASKDIR/SetupMuonBasedTasks.C",kFALSE);
+      if ( inputName.EndsWith(".root") ) CopyAdditionalFilesLocally(inputName);
       WritePodExecutable(analysisOptions);
     }
     LoadLibsLocally(libraries,includePaths);
@@ -1232,8 +1241,9 @@ void StartAnalysis ( TString runMode, TString analysisMode, TString inputName, T
 
   TString mgrMode =( sMode == "terminateonly" ) ? "grid terminate" : sMode.Data();
 
-  if ( sMode == "proof") mgr->StartAnalysis(mgrMode.Data(), inputObj->GetName());
-  else mgr->StartAnalysis(mgrMode.Data(), static_cast<TChain*>(inputObj));
+  if ( ! inputObj || inputObj->IsA() == TChain::Class() ) mgr->StartAnalysis(mgrMode.Data(), static_cast<TChain*>(inputObj));
+  else if ( inputObj->IsA() == TFileCollection::Class() ) mgr->StartAnalysis(mgrMode.Data(), static_cast<TFileCollection*>(inputObj));
+  else mgr->StartAnalysis(mgrMode.Data(), inputObj->GetName());
 
   //mgr->ProfileTask("SingleMuonAnalysisTask"); // REMEMBER TO COMMENT (test memory)
 }
