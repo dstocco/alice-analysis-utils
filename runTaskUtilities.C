@@ -66,7 +66,7 @@ void PrintOptions()
   printf("  inputName: <runNumber> <fileWithRunList> <rootFileToAnalyse(absolute path)>\n");
   printf("  inputOptions: Data/MC FULL/NOVTX/EMBED AOD/ESD SPLIT <period> <pass> <dataPattern> <dataDir>\n");
   printf("  softVersions: aliphysics=version,aliroot=version,root=version\n");
-  printf("  analysisOptions: NOPHYSSEL NOCENTR OLDCENTR MIXED\n");
+  printf("  analysisOptions: NOPHYSSEL CENTR OLDCENTR MIXED\n");
 }
 
 //_______________________________________________________
@@ -1153,35 +1153,37 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
       printf("\nMC event handler requested\n\n");
     }
 
-#ifndef TESTCOMPILATION
     Bool_t treatAsMC = ( isMC && ! isEmbed );
     if ( ! analysisOptions.Contains("NOPHYSSEL") ) {
       printf("Adding physics selection task\n");
       gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
+#ifndef TESTCOMPILATION
       AliPhysicsSelectionTask* physSelTask = AddTaskPhysicsSelection(treatAsMC);
       if ( ! treatAsMC ) physSelTask->GetPhysicsSelection()->SetUseBXNumbers(kFALSE); // Needed if you want to merge runs with different running scheme
       physSelTask->GetPhysicsSelection()->SetPassName(GetPass(inputName,inputOptions));
+#endif
     }
 
     // Old centrality framework
-    if ( ! analysisOptions.Contains("NOCENTR") && analysisOptions.Contains("OLDCENTR") ) {
+    if ( analysisOptions.Contains("OLDCENTR") ) {
       printf("Adding old centrality task\n");
       gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
+#ifndef TESTCOMPILATION
       AliCentralitySelectionTask* centralityTask = AddTaskCentrality();
       if ( treatAsMC ) centralityTask->SetMCInput();
-    }
 #endif
+    }
   }
 
-#ifndef TESTCOMPILATION
-  if ( ! analysisOptions.Contains("NOCENTR") && ! analysisOptions.Contains("OLDCENTR") ) {
+  if ( analysisOptions.Contains("CENTR") && ! analysisOptions.Contains("OLDCENTR") ) {
     printf("Adding centrality task\n");
     gROOT->LoadMacro("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C");
+#ifndef TESTCOMPILATION
     AliMultSelectionTask* centralityTask = AddTaskMultSelection(kFALSE);
-    centralityTask->SetUseDefaultCalib(kTRUE); // data
-    centralityTask->SetUseDefaultMCCalib(kTRUE); // MC
-  }
+    if ( isMC ) centralityTask->SetUseDefaultMCCalib(kTRUE); // MC
+    else centralityTask->SetUseDefaultCalib(kTRUE); // data
 #endif
+  }
 
 //  if ( analysisOptions.Contains("TEST") ) {
 //    gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddTaskBaseLine.C");
