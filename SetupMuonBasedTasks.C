@@ -57,7 +57,7 @@ TObjArray* GetTerminateOptions ( TString taskOpt, Bool_t isMC )
     if ( isMC ) {
       physSel = "PhysSelPass,PhysSelReject";
       trigClasses = "ANY";
-      centr = "";
+      centr = "-5_105";
       furtherOpt = "MC verbose";
     }
     //TString GetPeriod(opt);
