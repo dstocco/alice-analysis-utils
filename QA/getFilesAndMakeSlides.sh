@@ -184,16 +184,23 @@ if [ -e "$oldTexFile" ]; then
 # Update summary run-by-run info
   runListQAstr=$(cat $runListQA | xargs)
   changeCommand=""
-  sedCut='s/^[[:space:]]*//;s/\\/\\\\/g;s/\[/\\\[/g;s/\]/\\\]/g;s/\?/\\\?/'
+  sedCut='s/^[[:space:]]*//;s/\\/\\\\/g;s/\[/\\\[/g;s/\]/\\\]/g;s/\?/\\\?/;s:/:\\/:g;'
   for irun in $runListQAstr; do
     infoRun=$(grep "runTab" $oldTexFile | grep $irun | grep -v "{}" | sed "$sedCut")
     if [ "$infoRun" != "" ]; then
       genRun=$(grep "runTab" $texFile | grep $irun | sed "$sedCut")
       changeCommand="${changeCommand}s/$genRun/$infoRun/;"
+      if [ ${#changeCommand} -gt 2000 ]; then
+# Apparently there is a limit to the length of the command sed can get...
+# We hence run sed when the string starts to become long
+        sed  -i '' "$changeCommand" $texFile
+        changeCommand=""
+      fi
     fi
   done
-  #  echo "$changeCommand"
-  sed -i "" "$changeCommand" $texFile
+if [ ${#changeCommand} -gt 1 ]; then
+  sed -i '' "$changeCommand" $texFile
+fi
 
 #  mv $tmpTexFile $generatedTexFile
 #  diff --changed-group-format='%<' --old-group-format='%<' --new-group-format='%>' $oldTexFile $generatedTexFile > $tmpTexFile
