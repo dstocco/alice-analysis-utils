@@ -55,7 +55,6 @@ Bool_t SetAlienIO ( TString& inputOptions, TString period, AliAnalysisAlien* plu
   if ( ! boson.IsNull() ) printf("Requested boson: %s\n", boson.Data());
   
   delete optList;
-  inputOptions.ToLower();
 
   TString workDir = "";
   TString dataType = "";
@@ -117,7 +116,7 @@ Bool_t SetAlienIO ( TString& inputOptions, TString period, AliAnalysisAlien* plu
         dataType = "MC";
       }
     } // ! boson.IsNull()
-    else if ( inputOptions.Contains("beauty") ) {
+    else if ( inputOptions.Contains("beauty",TString::kIgnoreCase) ) {
       TString matchPattern = "EffpPb2013woCuts/";
       if ( alignment.Atoi() != 0 ) matchPattern += Form("Eff%s/",alignment.Data());
       matchPattern += Form("output/%s",period.Data());
@@ -140,7 +139,7 @@ Bool_t SetAlienIO ( TString& inputOptions, TString period, AliAnalysisAlien* plu
       dataPattern = "AliESDs.root";
       dataType = "MC";
     }
-    else if ( inputOptions.Contains("fonll") ) {
+    else if ( inputOptions.Contains("fonll",TString::kIgnoreCase) ) {
       TString matchPattern = Form("/%s/ /B/ /align[a-z]*%s", period.Data(), alignment.Data());
       matchPattern.ToLower();
       
