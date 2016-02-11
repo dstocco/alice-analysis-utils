@@ -182,6 +182,17 @@ Bool_t PerformAction ( TString command, Bool_t& yesToAll )
 }
 
 //_______________________________________________________
+TString GetRunMacro ( )
+{
+  TString rootCmd = gSystem->GetFromPipe("tail -n 1 $HOME/.root_hist");
+  rootCmd.ReplaceAll("  "," ");
+  rootCmd.ReplaceAll(".x ","");
+  rootCmd.Remove(TString::kLeading,' ');
+  rootCmd.Remove(TString::kTrailing,' ');
+  return rootCmd;
+}
+
+//_______________________________________________________
 TString GetSoftVersion ( TString softType, TString softVersions )
 {
   // Format for softVersions: aliphysics=version,aliroot=version,root=version
@@ -553,16 +564,52 @@ Bool_t CopyDatasetLocally ( TString inputName, TString analysisMode )
 }
 
 //_______________________________________________________
-Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysisMode )
+Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysisMode, TString workDir )
 {
   /// Space separated list of libraries, par files and classes
 
   TString aliceSrcDir = gSystem->ExpandPathName("$ALICE_PHYSICS");
   TString aliceBuildDir = gSystem->ExpandPathName("$ALICE_PHYSICS/../build");
   TString command = "";
-//  Bool_t yesToAll = kTRUE;
 
+  if ( gSystem->AccessPathName("./runTaskUtilities.C") == 0 ) {
+    printf("Found runTaskUtilities.C in the current working directory\n");
+    printf("Assume you want to re-run local: do not copy files\n");
+    return kFALSE;
+  }
+  if ( workDir.IsNull() ) workDir = "tmpDir";
+
+  Bool_t yesToAll = kFALSE;
   TString currDir = gSystem->pwd();
+  TString workDirFull = "";
+  if ( gSystem->AccessPathName(workDir) == 0 ) {
+    workDirFull = gSystem->GetFromPipe(Form("cd %s; pwd; cd %s",workDir.Data(),currDir.Data()));
+    if ( workDirFull == currDir ) return kFALSE;
+    printf("Workdir %s already exist:\n",workDir.Data());
+    command = Form("rm -rf %s",workDir.Data());
+    if ( ! PerformAction(command,yesToAll) ) {
+      gSystem->cd(workDirFull.Data());
+      return kFALSE;
+    }
+  }
+
+  yesToAll = kTRUE;
+  command = Form("mkdir %s",workDir.Data());
+  PerformAction(command,yesToAll);
+
+  if ( workDirFull.IsNull() ) workDirFull = gSystem->GetFromPipe(Form("cd %s; pwd; cd %s",workDir.Data(),currDir.Data()));
+
+  gSystem->cd(workDirFull.Data());
+
+  CopyDatasetLocally(inputName,analysisMode);
+
+  TString runMacro = GetRunMacro();
+  runMacro.Remove(runMacro.Index("("));
+  runMacro.ReplaceAll("+","");
+  if ( ! runMacro.BeginsWith("/") ) runMacro.Prepend(Form("%s/",currDir.Data()));
+
+  CopyAdditionalFilesLocally(runMacro);
+
 //  TString outDir = Form("%s/%s",currDir.Data(),GetOutDirName().Data());
 //  if ( gSystem->AccessPathName(outDir) ) {
 //    if ( runMode == "terminate" || runMode == "merge" ) {
@@ -574,21 +621,22 @@ Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysis
 //    else PerformAction(Form("mkdir %s",outDir.Data()),yesToAll);
 //  }
 
-  Bool_t yesToAll = kFALSE;
+
 
 //  else if ( ! gSystem->AccessPathName(outDir) ) {
 //    command = Form("rm -rf %s",outDir.Data());
 //    PerformAction(command,yesToAll);
 //  }
 
-  CopyDatasetLocally(inputName,analysisMode);
+
 
   TObjArray* libList = libraries.Tokenize(" ");
-  TString currName = "",fullName="";
+  TString currName = "";
   Bool_t isOk = kTRUE;
   for ( Int_t ilib=0; ilib<libList->GetEntries(); ilib++) {
     currName = libList->At(ilib)->GetName();
-    if ( currName.Contains(".cxx") ) {
+    if ( ! currName.BeginsWith("/") ) currName.Prepend(Form("%s/",currDir.Data()));
+    if ( currName.EndsWith(".cxx") || currName.EndsWith(".C") ) {
       TObjArray arr(2);
       arr.SetOwner();
       arr.AddAt(new TObjString(currName),1);
@@ -596,18 +644,24 @@ Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysis
       arr.AddAt(new TObjString(currName),0);
       for ( Int_t ifile=0; ifile<arr.GetEntries(); ifile++ ) {
         currName = arr.At(ifile)->GetName();
-        if ( gSystem->AccessPathName(currName.Data()) == 0 ) continue;
-        command = Form("className=`find %s -name %s`; cp -p $className %s/;", aliceSrcDir.Data(), currName.Data(), currDir.Data());
+        if ( gSystem->AccessPathName(currName.Data()) == 0 ) {
+          TString dirName = gSystem->DirName(currName.Data());
+          if ( dirName.IsNull() || dirName == "." ) continue;
+          command = Form("cp -p %s %s/;", currName.Data(), workDirFull.Data());
+        }
+        else command = Form("className=`find %s -name %s`; cp -p $className %s/;", aliceSrcDir.Data(), gSystem->BaseName(currName.Data()), workDirFull.Data());
         if ( ! PerformAction(command, yesToAll) ) {
           printf("Error: could not create %s\n", currName.Data());
           isOk = kFALSE;
           break;
         }
+        if ( currName.EndsWith(".C") ) break;
       }
     }
     else if ( currName.Contains(".par") ) {
       if ( gSystem->AccessPathName(currName.Data()) ) {
-        command = Form("cd %s; make %s; cd %s; find %s -name %s -exec mv -v {} %s/ \\;", aliceBuildDir.Data(), currName.Data(), currDir.Data(), aliceBuildDir.Data(), currName.Data(), currDir.Data());
+        TString baseName = gSystem->BaseName(currName.Data());
+        command = Form("cd %s; make %s; cd %s; find %s -name %s -exec mv -v {} ./ \\;", aliceBuildDir.Data(), baseName.Data(), workDirFull.Data(), aliceBuildDir.Data(), baseName.Data());
         if ( ! PerformAction(command, yesToAll) ) {
           printf("Error: could not create %s\n", currName.Data());
           isOk = kFALSE;
@@ -626,6 +680,7 @@ Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysis
     if (! isOk ) break;
   } // loop on libs
   delete libList;
+
   return isOk;
 }
 
@@ -641,10 +696,10 @@ Bool_t LoadLibsLocally ( TString libraries, TString includePaths )
 
   TObjArray* libList = libraries.Tokenize(" ");
   for ( Int_t ilib=0; ilib<libList->GetEntries(); ilib++) {
-    TString currName = libList->At(ilib)->GetName();
-    if ( currName.Contains(".so") ) gSystem->Load(currName.Data());
-    else if ( currName.Contains(".cxx") ) gROOT->LoadMacro(Form("%s+g",currName.Data()));
-    else if ( currName.Contains(".par") ) {
+    TString currName = gSystem->BaseName(libList->At(ilib)->GetName());
+    if ( currName.EndsWith(".so") ) gSystem->Load(currName.Data());
+    else if ( currName.EndsWith(".cxx") ) gROOT->LoadMacro(Form("%s+g",currName.Data()));
+    else if ( currName.EndsWith(".par") ) {
       currName.ReplaceAll(".par","");
       // The following line is needed since we use AliAnalysisAlien::SetupPar in this function.
       // The interpreter reads the following part line-by-line, even if the condition is not satisfied.
@@ -653,6 +708,18 @@ Bool_t LoadLibsLocally ( TString libraries, TString includePaths )
       if ( foundLib.IsNull() ) gSystem->Load("libANALYSISalice.so");
       AliAnalysisAlien::SetupPar(currName);
     }
+  }
+  delete libList;
+  return kTRUE;
+}
+
+//_______________________________________________________
+Bool_t LoadAddTasks ( TString libraries )
+{
+  TObjArray* libList = libraries.Tokenize(" ");
+  for ( Int_t ilib=0; ilib<libList->GetEntries(); ilib++) {
+    TString currName = gSystem->BaseName(libList->At(ilib)->GetName());
+    if ( currName.EndsWith(".C") ) gROOT->LoadMacro(currName.Data());
   }
   delete libList;
   return kTRUE;
@@ -689,9 +756,9 @@ Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TSt
   TObjArray* libList = libraries.Tokenize(" ");
   for ( Int_t ilib=0; ilib<libList->GetEntries(); ilib++) {
     TString currName = libList->At(ilib)->GetName();
-    if ( currName.Contains(".cxx") ) extraSrcs.Add(new TObjString(currName));
-    else if ( currName.Contains(".par") ) extraPkgs.Add(new TObjString(currName));
-    else if ( currName.Contains(".so") ) {
+    if ( currName.EndsWith(".cxx") ) extraSrcs.Add(new TObjString(gSystem->BaseName(currName.Data())));
+    else if ( currName.EndsWith(".par") ) extraPkgs.Add(new TObjString(currName));
+    else if ( currName.EndsWith(".so") ) {
       if ( currName.BeginsWith("lib") ) currName.Remove(0,3);
       currName.ReplaceAll(".so","");
       if ( ! extraLibs.IsNull() ) extraLibs += ":";
@@ -867,11 +934,8 @@ void WritePodExecutable ( TString analysisOptions )
     outFile << "  for ifile in $fileList; do ln -s ../$ifile; done" << endl;
     outFile << "  echo \"$line\" > " << dsName.Data() << endl;
   }
-  TString rootCmd = gSystem->GetFromPipe("tail -n 1 $HOME/.root_hist");
-  rootCmd.ReplaceAll("  "," ");
-  rootCmd.Remove(TString::kLeading,' ');
-  rootCmd.Remove(TString::kTrailing,' ');
-  rootCmd.ReplaceAll(".x ","root -b -q '");
+  TString rootCmd = GetRunMacro();
+  rootCmd.Prepend("root -b -q '");
   rootCmd.Append("'");
   outFile << rootCmd.Data() << endl;
   if ( splitPerRun ) {
@@ -938,11 +1002,11 @@ void GetPodOutput ( TString aaf )
   TString copyCommand = GetProofInfo("copycommand",aaf);
   TString remoteDir = GetProofInfo("proofserver",aaf);
   remoteDir += Form(":%s",GetPodOutDir().Data());
-  PerformAction(Form("%s --exclude=\"*/\" --exclude=\"*.so\" --exclude=\"*.d\" --exclude=\"*.par\" %s/ ./",copyCommand.Data(),remoteDir.Data()),yesToAll);
+  PerformAction(Form("%s %s/*.root ./",copyCommand.Data(),remoteDir.Data()),yesToAll);
 }
 
 //______________________________________________________________________________
-TObject* CreateAlienHandler ( TString runMode, TString inputName, TString inputOptions, TString softVersions, TString libraries, TString includePaths, TString baseOutDir )
+TObject* CreateAlienHandler ( TString runMode, TString inputName, TString inputOptions, TString softVersions, TString libraries, TString includePaths, TString workDir )
 {
   AliAnalysisAlien *plugin = new AliAnalysisAlien();
 
@@ -989,13 +1053,15 @@ TObject* CreateAlienHandler ( TString runMode, TString inputName, TString inputO
 
   if ( ! IsMC(inputOptions) ) {
     plugin->SetRunPrefix("000");
-    if ( ! baseOutDir.IsNull() && ! period.IsNull() ) {
-      plugin->SetGridWorkingDir(Form("analysis/%s/%s",period.Data(),baseOutDir.Data()));
+    if ( ! workDir.IsNull() && ! period.IsNull() ) {
+      plugin->SetGridWorkingDir(Form("analysis/%s/%s",period.Data(),workDir.Data()));
     }
   }
   plugin->AddRunList(sRunList.Data());
   plugin->SetGridDataDir(dataDir.Data());
   plugin->SetDataPattern(dataPattern.Data());
+
+  plugin->SetCheckCopy(kFALSE); // Fixes issue with alien_CLOSE_SE
 
   // Set libraries
   TObjArray* pathList = includePaths.Tokenize(" ");
@@ -1008,15 +1074,15 @@ TObject* CreateAlienHandler ( TString runMode, TString inputName, TString inputO
   TString extraLibs = "", extraSrcs = "";
   TObjArray* libList = libraries.Tokenize(" ");
   for ( Int_t ilib=0; ilib<libList->GetEntries(); ilib++) {
-    TString currName = libList->At(ilib)->GetName();
-    if ( currName.Contains(".cxx") ) {
+    TString currName = gSystem->BaseName(libList->At(ilib)->GetName());
+    if ( currName.EndsWith(".cxx") ) {
       extraSrcs += Form("%s ", currName.Data());
       TString auxName = currName;
       auxName.ReplaceAll(".cxx",".h");
       extraLibs += Form("%s %s ", auxName.Data(), currName.Data());
     }
-    else if ( currName.Contains(".par") ) plugin->EnablePackage(currName.Data());
-    else if ( currName.Contains(".so") ) extraLibs += Form("%s ", currName.Data());
+    else if ( currName.EndsWith(".par") ) plugin->EnablePackage(currName.Data());
+    else if ( currName.EndsWith(".so") ) extraLibs += Form("%s ", currName.Data());
   }
   delete libList;
 
@@ -1040,7 +1106,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
                        TString analysisOptions = "",
                        TString libraries = "",
                        TString includePaths = "",
-                       TString baseOutDir = "",
+                       TString workDir = "",
                        Bool_t isMuonAnalysis = kTRUE )
 {
   analysisMode.ToLower();
@@ -1050,17 +1116,17 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
   if ( IsPodMachine(analysisMode) ) inputName = GetDatasetName();
   gSystem->ExpandPathName(inputName);
 
-  TMap* map = ParseInfo(inputName,inputOptions);
 
-  if ( ! IsPodMachine(analysisMode) ) {
-    if ( ! CopyFilesLocally(libraries,inputName,analysisMode) ) return 0x0;
+  Bool_t copyLocal = CopyFilesLocally(libraries,inputName,analysisMode,workDir);
+  if ( copyLocal ) {
+    CopyAdditionalFilesLocally("$TASKDIR/runTaskUtilities.C $TASKDIR/BuildMuonEventCuts.C $TASKDIR/SetupMuonBasedTasks.C",kFALSE);
     if ( IsPod(analysisMode) ) {
-      CopyAdditionalFilesLocally("$TASKDIR/runTaskUtilities.C $TASKDIR/BuildMuonEventCuts.C $TASKDIR/SetupMuonBasedTasks.C",kFALSE);
       if ( inputName.EndsWith(".root") ) CopyAdditionalFilesLocally(inputName);
       WritePodExecutable(analysisOptions);
     }
-    LoadLibsLocally(libraries,includePaths);
   }
+
+  if ( ! IsPodMachine(analysisMode) ) LoadLibsLocally(libraries,includePaths);
 
   TString baseMacroDir = gSystem->Getenv("TASKDIR");
   AliAnalysisAlien* plugin = 0x0;
@@ -1071,7 +1137,14 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     // Create and configure the alien handler plugin
     //#endif
     // CAVEAT: use (class*) to cast since CINT does not know static_cast
-    plugin = static_cast<AliAnalysisAlien*>(CreateAlienHandler(runMode,inputName,inputOptions,softVersions,libraries,includePaths,baseOutDir));
+    plugin = static_cast<AliAnalysisAlien*>(CreateAlienHandler(runMode,inputName,inputOptions,softVersions,libraries,includePaths,workDir));
+    TString setAlienIOmacro = gSystem->ExpandPathName(Form("%s/SetAlienIO.C",baseMacroDir.Data()));
+    if ( ! gSystem->AccessPathName(setAlienIOmacro.Data()) ) {
+      gROOT->LoadMacro(Form("%s+",setAlienIOmacro.Data()));
+#ifndef TESTCOMPILATION
+      SetAlienIO(inputOptions,GetPeriod(inputOptions),plugin);
+#endif
+    }
   }
   else if ( sMode == "proof" ) {
     if ( runMode == "test" ) analysisMode = "prooflite";
@@ -1095,18 +1168,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
   AliAnalysisManager *mgr = new AliAnalysisManager("testAnalysis");
 //  PerformAction(Form("cd %s",outDir.Data()),yesToAll);
 
-  if ( plugin ) {
-    // Connect plug-in to the analysis manager
-    mgr->SetGridHandler(plugin);
-
-    TString setAlienIOmacro = gSystem->ExpandPathName(Form("%s/SetAlienIO.C",baseMacroDir.Data()));
-    if ( ! gSystem->AccessPathName(setAlienIOmacro.Data()) ) {
-      gROOT->LoadMacro(Form("%s+",setAlienIOmacro.Data()));
-#ifndef TESTCOMPILATION
-      SetAlienIO(inputOptions,GetPeriod(inputOptions),plugin);
-#endif
-    }
-  }
+  if ( plugin ) mgr->SetGridHandler(plugin);
 
   Bool_t isAOD = IsAOD(inputName,inputOptions);
   Bool_t isESD = IsESD(inputName,inputOptions);
@@ -1119,6 +1181,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     return 0x0;
   }
 
+  TMap* map = ParseInfo(inputName,inputOptions);
   printf("\nParsed parameters:\n");
   map->Print();
   printf("\n");
@@ -1207,6 +1270,8 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     PrintOptions();
     return 0x0;
   }
+
+  LoadAddTasks(libraries);
 
   printf("Analyzing %s  MC %i\n", isAOD ? "AODs" : "ESDs", isMC);
 
