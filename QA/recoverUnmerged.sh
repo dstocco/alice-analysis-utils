@@ -27,7 +27,7 @@ for irun in $runList; do
   fi
   mkdir -p $currDir
   cd $currDir
-  tmpList="$1_tmp"
+  tmpList="tmp_$(basename $1)"
   echo $irun > $tmpList
   ln -s $ALICE_PHYSICS/PWGPP/MUON/lite/mergeGridFiles.C
   aliroot -b << EOF
