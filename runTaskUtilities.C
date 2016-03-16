@@ -84,7 +84,7 @@ TString GetProofInfo ( TString info, TString analysisMode )
   else if ( analysisMode == "saf" ) {
     proofCluster = "pod://";
     proofServer = "nansafmaster3.in2p3.fr";
-    copyCommand = "rsync -avuL -e 'gsissh -p 1975'";
+    copyCommand = "rsync -avcL -e 'gsissh -p 1975'";
     openCommand = Form("gsissh -p 1975 -t %s",proofServer.Data());
     aafEnter = "/opt/SAF3/bin/saf3-enter";
     datasetMode = "cache";
@@ -92,7 +92,7 @@ TString GetProofInfo ( TString info, TString analysisMode )
   else if ( analysisMode == "vaf" ) {
     proofCluster = "pod://";
     proofServer = "alivaf-002.cern.ch";
-    copyCommand = Form("rsync -avuL -e 'ssh %s@localhost -p 5501'",userName.Data());
+    copyCommand = Form("rsync -avcL -e 'ssh %s@localhost -p 5501'",userName.Data());
     openCommand = Form("ssh %s@localhost -p 5501",userName.Data());
     aafEnter = "/usr/bin/vaf-enter";
     datasetMode = "remote";
