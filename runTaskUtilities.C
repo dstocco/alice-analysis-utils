@@ -69,11 +69,16 @@ void PrintOptions()
   printf("  analysisOptions: NOPHYSSEL CENTR OLDCENTR MIXED\n");
 }
 
+TString GetPodOutDir();
+
 //_______________________________________________________
 TString GetProofInfo ( TString info, TString analysisMode )
 {
-  TString proofCluster = "", proofServer = "", copyCommand = "", openCommand = "", aafEnter = "", datasetMode;
+  TString proofCluster = "", proofServer = "", copyCommand = "", openCommand = "", execCommand = "", datasetMode = "", passCommand = "";
   info.ToLower();
+
+  TString runPodCommand = Form("\"%s/runPod.sh nworkers\"",GetPodOutDir().Data());
+
   TString userName = gSystem->Getenv("alice_API_USER");
   userName.Append("@");
   if ( analysisMode == "saf2" ) {
@@ -86,15 +91,17 @@ TString GetProofInfo ( TString info, TString analysisMode )
     proofServer = "nansafmaster3.in2p3.fr";
     copyCommand = "rsync -avcL -e 'gsissh -p 1975'";
     openCommand = Form("gsissh -p 1975 -t %s",proofServer.Data());
-    aafEnter = "/opt/SAF3/bin/saf3-enter";
+    execCommand = Form("/opt/SAF3/bin/saf3-enter \"\" %s",runPodCommand.Data());
     datasetMode = "cache";
+    passCommand = "\"\"";
   }
   else if ( analysisMode == "vaf" ) {
+    Int_t lxplusTunnelPort = 5501;
     proofCluster = "pod://";
-    proofServer = "alivaf-002.cern.ch";
-    copyCommand = Form("rsync -avcL -e 'ssh %s@localhost -p 5501'",userName.Data());
-    openCommand = Form("ssh %s@localhost -p 5501",userName.Data());
-    aafEnter = "/usr/bin/vaf-enter";
+    proofServer = "localhost";
+    copyCommand = Form("rsync -avcL -e 'ssh -p %i'",lxplusTunnelPort);
+    openCommand = Form("ssh %slocalhost -p %i -t",userName.Data(),lxplusTunnelPort);
+    execCommand = Form("echo %s | /usr/bin/vaf-enter",runPodCommand.Data());
     datasetMode = "remote";
   }
   else if ( analysisMode == "test" || analysisMode == "prooflite" ) {
@@ -106,7 +113,7 @@ TString GetProofInfo ( TString info, TString analysisMode )
   else if ( info == "proofserver" ) return proofServer;
   else if ( info == "copycommand" ) return copyCommand;
   else if ( info == "opencommand" ) return openCommand;
-  else if ( info == "aafenter" ) return aafEnter;
+  else if ( info == "execcommand" ) return execCommand;
   else if ( info == "datasetmode" ) return datasetMode;
   else printf("Error: option %s not recognised\n",info.Data());
   return "";
@@ -135,7 +142,7 @@ Bool_t IsPodMachine ( TString analysisMode )
   TString proofServer = GetProofInfo("proofserver",analysisMode);
 //  TString hostname = gSystem->Getenv("HOSTNAME");
   TString hostname = gSystem->GetFromPipe("hostname");
-  return ( proofServer == hostname );
+  return ( proofServer == hostname || hostname.BeginsWith("alivaf") );
 }
 
 //_______________________________________________________
@@ -774,8 +781,7 @@ Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TSt
   if ( aaf != "saf") // Temporary fix for saf3: REMEMBER TO CUT this line when issue fixed
     list->Add(new TNamed("ALIROOT_ENABLE_ALIEN", "1"));
   TString mainPackage = "";
-  if ( proofServer == "localhost" ) mainPackage = "$ALICE_ROOT/ANALYSIS/macros/AliRootProofLite.par";
-  else if ( IsPod(aaf) ) {
+  if ( IsPod(aaf) ) {
     TString remotePar = ( aaf == "saf" ) ? "https://github.com/aphecetche/aphecetche.github.io/blob/master/saf/saf3/AliceVaf.par?raw=true" : "http://alibrary.web.cern.ch/alibrary/vaf/AliceVaf.par";
     mainPackage = gSystem->BaseName(remotePar.Data());
     mainPackage.Remove(mainPackage.Index("?"));
@@ -791,6 +797,7 @@ Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TSt
 //      printf("Using custom %s\n",mainPackage.Data());
 //    }
   }
+  else if ( proofServer == "localhost" ) mainPackage = "$ALICE_ROOT/ANALYSIS/macros/AliRootProofLite.par";
   else {
     mainPackage = GetSoftVersion("aliphysics",softVersions);
     mainPackage.Prepend("VO_ALICE@AliPhysics::");
@@ -966,7 +973,7 @@ void ConnectToPod ( TString aaf, TString softVersions, TString analysisOptions )
 
   TString copyCommand = GetProofInfo("copycommand",aaf);
   TString openCommand = GetProofInfo("opencommand",aaf);
-  TString aafEnter = GetProofInfo("aafenter",aaf);
+//  TString aafEnter = GetProofInfo("aafenter",aaf);
 
   Int_t nWorkers = 88;
   TString nWorkersStr = analysisOptions(TRegexp("NWORKERS=[0-9]+"));
@@ -988,10 +995,11 @@ void ConnectToPod ( TString aaf, TString softVersions, TString analysisOptions )
 //  remoteDir.ReplaceAll(Form("%s:",remote.Data()),"");
 //  printf("Please execute this on the remote machine:\n");
 //  printf("\n. %s/runPod.sh [nWorkers]\n\n",GetPodOutDir().Data());
-  TString execCommand = Form("\"\" \"%s/runPod.sh %i\"",GetPodOutDir().Data(),nWorkers);
+  TString execCommand = GetProofInfo("execcommand",aaf);
+  execCommand.ReplaceAll("nworkers",Form("%i",nWorkers));
 //  gSystem->Exec(Form("%s '%s %s'", openCommand.Data(),GetProofInfo("aafenter",aaf).Data(),execCommand.Data()));
   TString updateVersion = Form("sed -i \"s/VafAliPhysicsVersion=.*/VafAliPhysicsVersion=%s/\" .vaf/vaf.conf",GetSoftVersion("aliphysics",softVersions).Data());
-  gSystem->Exec(Form("%s '%s; %s %s'", openCommand.Data(),updateVersion.Data(),GetProofInfo("aafenter",aaf).Data(),execCommand.Data()));
+  gSystem->Exec(Form("%s '%s; %s'",openCommand.Data(),updateVersion.Data(),execCommand.Data()));
 //  gSystem->Exec(Form("%s -t %s", openCommand.Data(),GetProofInfo("aafenter",aaf).Data()));
 }
 
