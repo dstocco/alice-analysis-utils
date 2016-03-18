@@ -870,32 +870,32 @@ TObject* CreateInputObject ( TString runMode, TString analysisMode, TString inpu
 }
 
 //______________________________________________________________________________
-Bool_t EditVafConf ( TString aaf, TString softVersions )
-{
-  TString localDir = "tmp_Vafconf";
-  TString copyCommand = GetProofInfo("copycommand",aaf);
-  TString rmdirCmd = Form("rm -r %s",localDir.Data());
-  TString remoteDir = GetProofInfo("proofserver",aaf);
-  remoteDir.Append(":.vaf");
-  Bool_t yesToAll = kTRUE;
-  PerformAction(Form("mkdir %s",localDir.Data()),yesToAll);
-  TString command = Form("%s %s/ %s/",copyCommand.Data(),remoteDir.Data(),localDir.Data());
-  PerformAction(command.Data(),yesToAll);
-  TString localFile = Form("%s/vaf.conf",localDir.Data());
-  if ( gSystem->AccessPathName(localFile) ) {
-    printf("Warning: cannot copy from %s\n",remoteDir.Data());
-    PerformAction(rmdirCmd.Data(),yesToAll);
-    return kFALSE;
-  }
-  TString os = gSystem->GetFromPipe("uname");
-  TString sedOpt = ( os == "Darwin" ) ? "-i ''" : "-i";
-  command = Form("sed %s 's/VafAliPhysicsVersion=.*/VafAliPhysicsVersion=%s/' %s",sedOpt.Data(),GetSoftVersion("aliphysics",softVersions).Data(),localFile.Data());
-  PerformAction(command.Data(),yesToAll);
-  command = Form("%s %s/ %s/",copyCommand.Data(),localDir.Data(),remoteDir.Data());
-  PerformAction(command.Data(),yesToAll);
-  PerformAction(rmdirCmd.Data(),yesToAll);
-  return kTRUE;
-}
+//Bool_t EditVafConf ( TString aaf, TString softVersions )
+//{
+//  TString localDir = "tmp_Vafconf";
+//  TString copyCommand = GetProofInfo("copycommand",aaf);
+//  TString rmdirCmd = Form("rm -r %s",localDir.Data());
+//  TString remoteDir = GetProofInfo("proofserver",aaf);
+//  remoteDir.Append(":.vaf");
+//  Bool_t yesToAll = kTRUE;
+//  PerformAction(Form("mkdir %s",localDir.Data()),yesToAll);
+//  TString command = Form("%s %s/ %s/",copyCommand.Data(),remoteDir.Data(),localDir.Data());
+//  PerformAction(command.Data(),yesToAll);
+//  TString localFile = Form("%s/vaf.conf",localDir.Data());
+//  if ( gSystem->AccessPathName(localFile) ) {
+//    printf("Warning: cannot copy from %s\n",remoteDir.Data());
+//    PerformAction(rmdirCmd.Data(),yesToAll);
+//    return kFALSE;
+//  }
+//  TString os = gSystem->GetFromPipe("uname");
+//  TString sedOpt = ( os == "Darwin" ) ? "-i ''" : "-i";
+//  command = Form("sed %s 's/VafAliPhysicsVersion=.*/VafAliPhysicsVersion=%s/' %s",sedOpt.Data(),GetSoftVersion("aliphysics",softVersions).Data(),localFile.Data());
+//  PerformAction(command.Data(),yesToAll);
+//  command = Form("%s %s/ %s/",copyCommand.Data(),localDir.Data(),remoteDir.Data());
+//  PerformAction(command.Data(),yesToAll);
+//  PerformAction(rmdirCmd.Data(),yesToAll);
+//  return kTRUE;
+//}
 
 
 //______________________________________________________________________________
@@ -984,12 +984,14 @@ void ConnectToPod ( TString aaf, TString softVersions, TString analysisOptions )
   PerformAction(command,yesToAll);
 //  command = Form("%s %s %s %s",baseSync.Data(),baseExclude.Data(),localDir.Data(),remoteDir.Data());
 //  PerformAction(command,yesToAll);
-  EditVafConf(aaf,softVersions);
+//  EditVafConf(aaf,softVersions);
 //  remoteDir.ReplaceAll(Form("%s:",remote.Data()),"");
 //  printf("Please execute this on the remote machine:\n");
 //  printf("\n. %s/runPod.sh [nWorkers]\n\n",GetPodOutDir().Data());
   TString execCommand = Form("\"\" \"%s/runPod.sh %i\"",GetPodOutDir().Data(),nWorkers);
-  gSystem->Exec(Form("%s '%s %s'", openCommand.Data(),GetProofInfo("aafenter",aaf).Data(),execCommand.Data()));
+//  gSystem->Exec(Form("%s '%s %s'", openCommand.Data(),GetProofInfo("aafenter",aaf).Data(),execCommand.Data()));
+  TString updateVersion = Form("sed -i \"s/VafAliPhysicsVersion=.*/VafAliPhysicsVersion=%s/\" .vaf/vaf.conf",GetSoftVersion("aliphysics",softVersions).Data());
+  gSystem->Exec(Form("%s '%s; %s %s'", openCommand.Data(),updateVersion.Data(),GetProofInfo("aafenter",aaf).Data(),execCommand.Data()));
 //  gSystem->Exec(Form("%s -t %s", openCommand.Data(),GetProofInfo("aafenter",aaf).Data()));
 }
 
