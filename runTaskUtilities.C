@@ -462,7 +462,7 @@ Bool_t AddInfo ( TString key, TString value, TMap* map, Bool_t keepExisiting = k
 }
 
 //______________________________________________________________________________
-TMap* ParseInfo ( TString inputName, TString inputOptions )
+TMap* ParseInfo ( TString inputName, TString inputOptions, TString analysisOptions )
 {
   TMap* map = new TMap();
   map->SetOwner();
@@ -485,6 +485,14 @@ TMap* ParseInfo ( TString inputName, TString inputOptions )
   TString period = GetPeriod(inputName,inputOptions);
   if ( period.IsNull() ) period = "UNKNOWN";
   AddInfo("period",period,map);
+
+
+  AddInfo("physicsSelection",analysisOptions.Contains("NOPHYSSEL")?"NO":"YES",map);
+  TString centr = "NO";
+  if ( analysisOptions.Contains("OLDCENTR") ) centr = "OLD";
+  else if ( analysisOptions.Contains("CENTR") ) centr = "YES";
+
+  AddInfo("centrality",centr,map);
 
   return map;
 }
@@ -1191,16 +1199,19 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     return 0x0;
   }
 
-  TMap* map = ParseInfo(inputName,inputOptions);
+  TMap* map = ParseInfo(inputName,inputOptions,analysisOptions);
   printf("\nParsed parameters:\n");
   map->Print();
   printf("\n");
+  TString physSel = map->GetValue("physicsSelection")->GetName();
+  TString centr = map->GetValue("centrality")->GetName();
 
   AliMultiInputEventHandler* multiHandler = 0x0;
   if ( analysisOptions.Contains("MIXED") ) {
     multiHandler = new AliMultiInputEventHandler();
     mgr->SetInputEventHandler(multiHandler);
   }
+
 
   // input handler
   if ( isAOD ) {
@@ -1229,7 +1240,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     }
 
     Bool_t treatAsMC = ( isMC && ! isEmbed );
-    if ( ! analysisOptions.Contains("NOPHYSSEL") ) {
+    if ( physSel == "yes" ) {
       printf("Adding physics selection task\n");
       gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
 #ifndef TESTCOMPILATION
@@ -1240,7 +1251,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     }
 
     // Old centrality framework
-    if ( analysisOptions.Contains("OLDCENTR") ) {
+    if ( centr == "OLD" ) {
       printf("Adding old centrality task\n");
       gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
 #ifndef TESTCOMPILATION
@@ -1250,7 +1261,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     }
   }
 
-  if ( analysisOptions.Contains("CENTR") && ! analysisOptions.Contains("OLDCENTR") ) {
+  if ( centr == "YES" ) {
     printf("Adding centrality task\n");
     gROOT->LoadMacro("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C");
 #ifndef TESTCOMPILATION

@@ -66,11 +66,12 @@ Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts
 
 
 //_______________________________________
-Bool_t SetCentralityBins ( TString period, AliMuonEventCuts* eventCuts )
+Bool_t SetCentralityBins ( Bool_t useCentr, TString period, AliMuonEventCuts* eventCuts )
 {
   
   TString sCentrBins = "";
-  if ( period == "LHC13d" || period == "LHC13e" || period == "LHC13f" ) {
+  if ( useCentr == kFALSE ) sCentrBins = "-5.,0.";
+  else if ( period == "LHC13d" || period == "LHC13e" || period == "LHC13f" ) {
     sCentrBins = "-5.,0.,2.,5.,20.,40.,60.,80.,100.,105.";
   }
   else return kFALSE;
@@ -112,8 +113,18 @@ AliMuonEventCuts* BuildMuonEventCuts ( TMap* map )
   AliMuonEventCuts* eventCuts = new AliMuonEventCuts("autoEvtCuts","autoEvtCuts");
   Bool_t mcTrigger = ( isMC && mcDetails != "EMBED" );
   SetTriggerInfo(period,mcTrigger,eventCuts);
-  
-  SetCentralityBins(period,eventCuts);
+
+  UInt_t filterMask = AliMuonEventCuts::kSelectedTrig;
+  TString physSel = map->GetValue("physicsSelection")->GetName();
+  TString centr = map->GetValue("centrality")->GetName();
+  Bool_t useCentr = kTRUE;
+  if ( physSel == "YES" ) filterMask |= AliMuonEventCuts::kPhysicsSelected;
+  if ( centr != "NO" ) filterMask |= AliMuonEventCuts::kSelectedCentrality;
+  else useCentr = kFALSE;
+
+  SetCentralityBins(useCentr,period,eventCuts);
+
+
   
   if ( mcTrigger ) {
     UInt_t filterMask = AliMuonEventCuts::kSelectedCentrality|AliMuonEventCuts::kSelectedTrig;
