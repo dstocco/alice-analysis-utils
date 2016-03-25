@@ -579,7 +579,59 @@ Bool_t CopyDatasetLocally ( TString inputName, TString analysisMode )
 }
 
 //_______________________________________________________
-Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysisMode, TString workDir )
+Bool_t WorkDir ( TString runMode, TString analysisMode, TString workDir )
+{
+  /// Make working dir if needed and cd into it
+
+  TString sMode = GetMode(runMode,analysisMode);
+  if ( gSystem->AccessPathName("./runTaskUtilities.C") == 0 ) {
+    if ( sMode != "terminateonly" ) {
+      printf("Found runTaskUtilities.C in the current working directory\n");
+      printf("Assume you want to re-run local: do not copy files\n");
+    }
+    return kFALSE;
+  }
+
+  if ( workDir.IsNull() ) {
+    workDir = "tmpDir";
+    printf("No workdir specified: creating default %s\n",workDir.Data());
+  }
+
+  Bool_t yesToAll = kFALSE;
+  TString currDir = gSystem->pwd();
+  TString command = "";
+  TString workDirFull = "";
+
+  Bool_t makeDir = ( gSystem->AccessPathName(workDir) != 0 );
+  if ( sMode == "terminateonly" ) {
+    if ( makeDir ) {
+      printf("Error: mode %s requires an existing workDir containing the analysis results!\n",sMode.Data());
+      return kFALSE;
+    }
+  }
+  else if ( ! makeDir ) {
+    workDirFull = gSystem->GetFromPipe(Form("cd %s; pwd; cd %s",workDir.Data(),currDir.Data()));
+    if ( workDirFull == currDir ) return kFALSE;
+    printf("Workdir %s already exist:\n",workDir.Data());
+    command = Form("rm -rf %s",workDir.Data());
+    makeDir = PerformAction(command,yesToAll);
+  }
+
+  if ( makeDir ) {
+    yesToAll = kTRUE;
+    command = Form("mkdir %s",workDir.Data());
+    PerformAction(command,yesToAll);
+  }
+
+  if ( workDirFull.IsNull() ) workDirFull = gSystem->GetFromPipe(Form("cd %s; pwd; cd %s",workDir.Data(),currDir.Data()));
+
+  gSystem->cd(workDirFull.Data());
+
+  return makeDir;
+}
+
+//_______________________________________________________
+Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysisMode, TString inDir )
 {
   /// Space separated list of libraries, par files and classes
 
@@ -587,41 +639,14 @@ Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysis
   TString aliceBuildDir = gSystem->ExpandPathName("$ALICE_PHYSICS/../build");
   TString command = "";
 
-  if ( gSystem->AccessPathName("./runTaskUtilities.C") == 0 ) {
-    printf("Found runTaskUtilities.C in the current working directory\n");
-    printf("Assume you want to re-run local: do not copy files\n");
-    return kFALSE;
-  }
-  if ( workDir.IsNull() ) workDir = "tmpDir";
-
-  Bool_t yesToAll = kFALSE;
-  TString currDir = gSystem->pwd();
-  TString workDirFull = "";
-  if ( gSystem->AccessPathName(workDir) == 0 ) {
-    workDirFull = gSystem->GetFromPipe(Form("cd %s; pwd; cd %s",workDir.Data(),currDir.Data()));
-    if ( workDirFull == currDir ) return kFALSE;
-    printf("Workdir %s already exist:\n",workDir.Data());
-    command = Form("rm -rf %s",workDir.Data());
-    if ( ! PerformAction(command,yesToAll) ) {
-      gSystem->cd(workDirFull.Data());
-      return kFALSE;
-    }
-  }
-
-  yesToAll = kTRUE;
-  command = Form("mkdir %s",workDir.Data());
-  PerformAction(command,yesToAll);
-
-  if ( workDirFull.IsNull() ) workDirFull = gSystem->GetFromPipe(Form("cd %s; pwd; cd %s",workDir.Data(),currDir.Data()));
-
-  gSystem->cd(workDirFull.Data());
+  Bool_t yesToAll = kTRUE;
 
   CopyDatasetLocally(inputName,analysisMode);
 
   TString runMacro = GetRunMacro();
   runMacro.Remove(runMacro.Index("("));
   runMacro.ReplaceAll("+","");
-  if ( ! runMacro.BeginsWith("/") ) runMacro.Prepend(Form("%s/",currDir.Data()));
+  if ( ! runMacro.BeginsWith("/") ) runMacro.Prepend(Form("%s/",inDir.Data()));
 
   CopyAdditionalFilesLocally(runMacro);
 
@@ -643,14 +668,14 @@ Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysis
 //    PerformAction(command,yesToAll);
 //  }
 
-
+  TString workDirFull = gSystem->pwd(); // Assume we are in the working directory
 
   TObjArray* libList = libraries.Tokenize(" ");
   TString currName = "";
   Bool_t isOk = kTRUE;
   for ( Int_t ilib=0; ilib<libList->GetEntries(); ilib++) {
     currName = libList->At(ilib)->GetName();
-    if ( ! currName.BeginsWith("/") ) currName.Prepend(Form("%s/",currDir.Data()));
+    if ( ! currName.BeginsWith("/") ) currName.Prepend(Form("%s/",inDir.Data()));
     if ( currName.EndsWith(".cxx") || currName.EndsWith(".C") ) {
       TObjArray arr(2);
       arr.SetOwner();
@@ -1134,9 +1159,10 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
   if ( IsPodMachine(analysisMode) ) inputName = GetDatasetName();
   gSystem->ExpandPathName(inputName);
 
-
-  Bool_t copyLocal = CopyFilesLocally(libraries,inputName,analysisMode,workDir);
+  TString currDir = gSystem->pwd();
+  Bool_t copyLocal = WorkDir(runMode,analysisMode,workDir);
   if ( copyLocal ) {
+    CopyFilesLocally(libraries,inputName,analysisMode,currDir);
     CopyAdditionalFilesLocally("$TASKDIR/runTaskUtilities.C $TASKDIR/BuildMuonEventCuts.C $TASKDIR/SetupMuonBasedTasks.C",kFALSE);
     if ( IsPod(analysisMode) ) {
       if ( inputName.EndsWith(".root") ) CopyAdditionalFilesLocally(inputName);
