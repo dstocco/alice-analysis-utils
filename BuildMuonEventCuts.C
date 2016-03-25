@@ -115,23 +115,24 @@ AliMuonEventCuts* BuildMuonEventCuts ( TMap* map )
   SetTriggerInfo(period,mcTrigger,eventCuts);
 
   UInt_t filterMask = AliMuonEventCuts::kSelectedTrig;
+
   TString physSel = map->GetValue("physicsSelection")->GetName();
+  if ( physSel == "YES" ) filterMask |= AliMuonEventCuts::kPhysicsSelected;
+
   TString centr = map->GetValue("centrality")->GetName();
   Bool_t useCentr = kTRUE;
-  if ( physSel == "YES" ) filterMask |= AliMuonEventCuts::kPhysicsSelected;
   if ( centr != "NO" ) filterMask |= AliMuonEventCuts::kSelectedCentrality;
   else useCentr = kFALSE;
-
   SetCentralityBins(useCentr,period,eventCuts);
 
+  eventCuts->SetFilterMask(filterMask);
 
-  
-  if ( mcTrigger ) {
-    UInt_t filterMask = AliMuonEventCuts::kSelectedCentrality|AliMuonEventCuts::kSelectedTrig;
-    if ( ! mcDetails.Contains("NOVTX") ) filterMask |= AliMuonEventCuts::kGoodVertex;
-    eventCuts->SetFilterMask(filterMask);
-  }
-  
+//  if ( mcTrigger ) {
+//    UInt_t filterMask = AliMuonEventCuts::kSelectedCentrality|AliMuonEventCuts::kSelectedTrig;
+//    if ( ! mcDetails.Contains("NOVTX") ) filterMask |= AliMuonEventCuts::kGoodVertex;
+//    eventCuts->SetFilterMask(filterMask);
+//  }
+
   return eventCuts;
 }
 

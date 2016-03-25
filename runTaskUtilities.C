@@ -64,7 +64,7 @@ void PrintOptions()
   printf("  runMode: test full merge terminate\n");
   printf("  analysisMode: local grid saf saf2 vaf terminateonly\n");
   printf("  inputName: <runNumber> <fileWithRunList> <rootFileToAnalyse(absolute path)>\n");
-  printf("  inputOptions: Data/MC FULL/NOVTX/EMBED AOD/ESD SPLIT <period> <pass> <dataPattern> <dataDir>\n");
+  printf("  inputOptions: Data/MC FULL/EMBED AOD/ESD SPLIT <period> <pass> <dataPattern> <dataDir>\n");
   printf("  softVersions: aliphysics=version,aliroot=version,root=version\n");
   printf("  analysisOptions: NOPHYSSEL CENTR OLDCENTR MIXED\n");
 }
@@ -473,8 +473,7 @@ TMap* ParseInfo ( TString inputName, TString inputOptions, TString analysisOptio
   AddInfo("dataType",dataType,map);
 
   TString dataTypeDetails = "FULL";
-  if ( inputOptions.Contains("NOVTX") ) dataTypeDetails = "NOVTX";
-  else if ( inputOptions.Contains("EMBED") ) dataTypeDetails = "EMBED";
+  if ( inputOptions.Contains("EMBED") ) dataTypeDetails = "EMBED";
   AddInfo("mcDetails",dataTypeDetails,map);
 
   // Check file tyoe (ESD/AOD)
