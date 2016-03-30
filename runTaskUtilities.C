@@ -64,9 +64,9 @@ void PrintOptions()
   printf("  runMode: test full merge terminate\n");
   printf("  analysisMode: local grid saf saf2 vaf terminateonly\n");
   printf("  inputName: <runNumber> <fileWithRunList> <rootFileToAnalyse(absolute path)>\n");
-  printf("  inputOptions: Data/MC FULL/EMBED AOD/ESD SPLIT <period> <pass> <dataPattern> <dataDir>\n");
+  printf("  inputOptions: Data/MC FULL/EMBED AOD/ESD <period> <pass> <dataPattern> <dataDir>\n");
   printf("  softVersions: aliphysics=version,aliroot=version,root=version\n");
-  printf("  analysisOptions: NOPHYSSEL CENTR OLDCENTR MIXED\n");
+  printf("  analysisOptions: NOPHYSSEL CENTR OLDCENTR MIXED SPLIT\n");
 }
 
 TString GetPodOutDir();
