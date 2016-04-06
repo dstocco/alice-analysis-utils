@@ -73,8 +73,13 @@ The _runMode_ parameter strictly depends on the _analysisMode_. They will be dis
   - your local class not in aliphysics, e.g. AliAnalysisTaskMyTask.cxx (no need to specify the corresponding .h, but it must be in the same directory)
   - your local AddMyTask not in aliphysics, e.g. AddMyTask.C: it will be copied on the output dir and loaded
 - **includePaths**: the space-separated list of include paths needed by your analysis, e.g. ". $ALICE_ROOT/include $ALICE_PHYSICS/include"
-- **workDir**: the directory in which all of the files needed to run the analysis will be copied. If one re-runs the command inside MyTask, the files are not overwritten. This allows to re-run the same analysis later on. This is also the directory used in AliAnalysisAlien::SetGridWorkDir in grid mode
-- isMuonAnalysis: it is the default...just keep it ;)
+- **workDir**: the directory in which all of the files needed to run the analysis will be copied. If one re-runs the command inside MyTask, the files are not overwritten. This allows to re-run the same analysis later on. Please notice that this is also the directory used in AliAnalysisAlien::SetGridWorkingDir in grid mode. This is compulsory in grid mode, so, if you decide to leave it blank, you need to directly act on the AliEn plugin:
+    ```C++
+    TMap* SetupAnalysis ([...]);
+    AliAnalysisAlien* plugin = static_cast<AliAnalysisAlien*>(AliAnalysisManager::GetAnalysisManager()->GetGridHandler());
+    plugin->SetGridWorkingDir("/AliEn/relative/path/to/the/chosen/folder");
+    ```
+- **isMuonAnalysis**: it is the default...just keep it ;)
 
 
 ### Example
