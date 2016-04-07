@@ -49,7 +49,7 @@ The _runMode_ parameter strictly depends on the _analysisMode_. They will be dis
       - _test_ : launch analysis locally with prooflite
       - _full_ : launch analysis on proof
       - _terminate_ : launch only the task Terminate (in PoD it first get the output file from the proof machine)
-- **inputName**:
+- **inputName**: (CAVEAT: when local filenames are provided, the absolute path ust be used)
   - ESD or AOD filename (in local mode)
   - dataset-like search string, e.g. Find;BasePath=/alice/data/2015/LHC15o/000244918/muon_calo_pass1/AOD/;FileName=AliAOD.Muons.root; (in proof and grid mode)
   - txt filename containing:
