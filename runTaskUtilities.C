@@ -814,7 +814,7 @@ Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TSt
     list->Add(new TNamed("ALIROOT_ENABLE_ALIEN", "1"));
   TString mainPackage = "";
   if ( IsPod(aaf) ) {
-    TString remotePar = ( aaf == "saf" ) ? "https://github.com/aphecetche/aphecetche.github.io/blob/master/saf/saf3/AliceVaf.par?raw=true" : "http://alibrary.web.cern.ch/alibrary/vaf/AliceVaf.par";
+    TString remotePar = ( aaf == "saf" ) ? "https://github.com/aphecetche/aphecetche.github.io/blob/master/page/saf3-usermanual/AliceVaf.par?raw=true" : "http://alibrary.web.cern.ch/alibrary/vaf/AliceVaf.par";
     mainPackage = gSystem->BaseName(remotePar.Data());
     mainPackage.Remove(mainPackage.Index("?"));
 //    if ( aaf != "saf" || gSystem->AccessPathName(mainPackage) ) {
