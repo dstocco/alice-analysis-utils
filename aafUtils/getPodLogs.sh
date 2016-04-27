@@ -23,6 +23,8 @@ logDir=$(gsissh -p 1975 -t "$proofServer" 'find '"$baseDir/$condorPid"' -type d 
 
 logDir=$(echo $logDir | tr -d '\r')
 
+echo "Getting logs from: ${logDir}"
+
 rsync -e 'gsissh -p 1975' "${proofServer}:${logDir}/proof_log.${workingNode}.tgz" ${outDir}/
 
 
