@@ -6,6 +6,8 @@
 #include "TString.h"
 #include "TSystem.h"
 #include "TArrayI.h"
+#include "TFileCollection.h"
+#include "TMath.h"
 
 #include "TProof.h" // FIXME: see later
 #endif
@@ -23,31 +25,31 @@ TString GetRunNumber ( TString queryString )
   return found;
 }
 
-//______________________________________________________________________________
-void CheckOutputFile ( TString filename, Int_t nRuns )
-{
-  ifstream inFile(filename.Data());
-  if ( ! inFile.is_open() ) {
-    printf("Error: cannot open %s\n",filename.Data());
-    return;
-  }
-  Int_t nFull=0, nEmpty=0, nPartial=0;
-  TString currLine;
-  while ( ! inFile.eof() ) {
-    currLine.ReadLine(inFile);
-    if ( currLine.Contains("Staged") ) {
-      if ( currLine.Contains("100.0 %") ) nFull++;
-      else if ( currLine.Contains(" 0.0 %" ) ) nEmpty++;
-      else nPartial++;
-    }
-  }
-  inFile.close();
-  printf("\nTotal runs %i (expected %i). Full %i  Empty %i  Partial %i\n",nFull+nEmpty+nPartial,nRuns,nFull,nEmpty,nPartial);
-}
+////______________________________________________________________________________
+//void CheckOutputFile ( TString filename, Int_t nRuns )
+//{
+//  ifstream inFile(filename.Data());
+//  if ( ! inFile.is_open() ) {
+//    printf("Error: cannot open %s\n",filename.Data());
+//    return;
+//  }
+//  Int_t nFull=0, nEmpty=0, nPartial=0;
+//  TString currLine;
+//  while ( ! inFile.eof() ) {
+//    currLine.ReadLine(inFile);
+//    if ( currLine.Contains("Staged") ) {
+//      if ( currLine.Contains("100.0 %") ) nFull++;
+//      else if ( currLine.Contains(" 0.0 %" ) ) nEmpty++;
+//      else nPartial++;
+//    }
+//  }
+//  inFile.close();
+//  printf("\nTotal runs %i (expected %i). Full %i  Empty %i  Partial %i\n",nFull+nEmpty+nPartial,nRuns,nFull,nEmpty,nPartial);
+//}
 
 
 //______________________________________________________________________________
-void checkAafStaging ( TString inFilename, TString searchString = "%s", TString outFilename = "/tmp/aafStagingOut.txt", TString aaf = "dstocco@nansafmaster2.in2p3.fr", Bool_t forceUpdate = kTRUE )
+void checkAafStaging ( TString inFilename, TString searchString = "%s", TString aaf = "dstocco@nansafmaster2.in2p3.fr", Bool_t forceUpdate = kTRUE )
 {
   // If inFilename is a list of run, a search string must be provided so that the dataset is built on the fly
   // e.g.: Find;BasePath=/alice/data/2015/LHC15o/000%s/muon_calo_pass1/AOD/;FileName=AliAOD.Muons.root;"
@@ -92,33 +94,46 @@ void checkAafStaging ( TString inFilename, TString searchString = "%s", TString 
 
 //  freopen (outFilename.Data(),"w",stdout);
 //  int backup, newstream;
-  fflush(stdout);
-  int backup = dup(1);
-  int newstream = open(outFilename.Data(), O_WRONLY|O_TRUNC);
-  dup2(newstream, 1);
-  close(newstream);
+//  fflush(stdout);
+//  int backup = dup(1);
+//  int newstream = open(outFilename.Data(), O_WRONLY|O_TRUNC);
+//  dup2(newstream, 1);
+//  close(newstream);
 
 //  std::ofstream out(outFilename.Data());
 //  std::streambuf *coutbuf = std::cout.rdbuf(); //save old buf
 //  std::cout.rdbuf(out.rdbuf()); //redirect std::cout to out.txt!
 
   TIter next(&inputList);
+  Int_t nFull=0, nEmpty=0, nPartial=0;
+  Float_t limit = 1.e-4;
   TObjString* str = 0x0;
+  TString currSearch = "";
   while ( (str = static_cast<TObjString*>(next())) ) {
 //    cout << Form(searchString.Data(),str->GetName()) << endl; continue; // REMEMBER TO CUT
-    gProof->ShowDataSet(Form(searchString.Data(),str->GetName()));
+    currSearch = Form(searchString.Data(),str->GetName());
+    currSearch.ReplaceAll(";;",";");
+    TFileCollection* fc = gProof->GetDataSet(currSearch.Data());
+    Float_t stagedPercentage = fc->GetStagedPercentage();
+    printf("%s   staged %g\%\n",currSearch.Data(),stagedPercentage);
+    if ( TMath::Abs(stagedPercentage-100.) < limit ) nFull++;
+    else if ( TMath::Abs(stagedPercentage-100.) < limit ) nEmpty++;
+    else nPartial++;
+    delete fc;
   }
+
+  printf("\nTotal runs %i (expected %i). Full %i  Empty %i  Partial %i\n",nFull+nEmpty+nPartial,nRuns,nFull,nEmpty,nPartial);
   
 
 //  fclose(stdout);
-  fflush(stdout);
-  dup2(backup, 1);
-  close(backup);
+//  fflush(stdout);
+//  dup2(backup, 1);
+//  close(backup);
 
 //  std::cout.rdbuf(coutbuf); //reset to standard output again
 
-  CheckOutputFile(outFilename,nRuns);
-  
+//  CheckOutputFile(outFilename,nRuns);
+
 }
 
 
