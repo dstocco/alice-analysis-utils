@@ -95,7 +95,7 @@ void getFileCollection ( TString inFilename, TString outFileCollection = "fileCo
     Float_t stagedPercentage = fc->GetStagedPercentage();
     printf("%s   staged %g%%\n",currSearch.Data(),stagedPercentage);
     if ( TMath::Abs(stagedPercentage-100.) < limit ) nFull++;
-    else if ( TMath::Abs(stagedPercentage-100.) < limit ) nEmpty++;
+    else if ( TMath::Abs(stagedPercentage-0.) < limit ) nEmpty++;
     else nPartial++;
     outFc.Add(fc);
     delete fc;
