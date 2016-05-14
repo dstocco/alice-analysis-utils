@@ -1265,7 +1265,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     }
 
     Bool_t treatAsMC = ( isMC && ! isEmbed );
-    if ( physSel == "yes" ) {
+    if ( physSel == "YES" ) {
       printf("Adding physics selection task\n");
       gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
 #ifndef TESTCOMPILATION
