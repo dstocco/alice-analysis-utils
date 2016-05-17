@@ -1340,6 +1340,8 @@ void StartAnalysis ( TString runMode, TString analysisMode, TString inputName, T
 
   if ( sMode.IsNull() ) return;
 
+  gSystem->ExpandPathName(inputName);
+
   AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
   if ( ! mgr->InitAnalysis()) {
     printf("Fatal: Cannot initialize analysis\n");
