@@ -634,8 +634,10 @@ Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysis
 {
   /// Space separated list of libraries, par files and classes
 
-  TString aliceSrcDir = gSystem->ExpandPathName("$ALICE_PHYSICS");
-  TString aliceBuildDir = gSystem->ExpandPathName("$ALICE_PHYSICS/../build");
+  // FIXME: this depends on the chosen installation directory (which can change from one user to another)
+  // Need to find a general way to get the path
+  TString aliceSrcDir = gSystem->ExpandPathName("$ALICE_WORK_DIR/../ali-master/AliPhysics");
+  TString aliceBuildDir = gSystem->ExpandPathName("$ALICE_WORK_DIR/BUILD/AliPhysics-latest-ali-master/AliPhysics");
   TString command = "";
 
   Bool_t yesToAll = kTRUE;
