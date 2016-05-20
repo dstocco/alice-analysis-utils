@@ -671,34 +671,27 @@ Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysis
 
   TString workDirFull = gSystem->pwd(); // Assume we are in the working directory
 
-  TObjArray* libList = libraries.Tokenize(" ");
+  // First add .h in the list of libraries (if needed)
   TString currName = "";
+  TObjArray* libList = libraries.Tokenize(" ");
+  TIter next(libList);
+  TObjString* objStr = 0x0;
+  while ( ( objStr = static_cast<TObjString*>(next()) ) ) {
+    currName = objStr->GetName();
+    if ( ! currName.EndsWith(".cxx") ) continue;
+    currName.ReplaceAll(".cxx",".h");
+    if ( ! libraries.Contains(currName.Data()) ) libraries += Form(" %s",currName.Data());
+  }
+
+  delete libList;
+  libList = libraries.Tokenize(" ");
+
   Bool_t isOk = kTRUE;
-  for ( Int_t ilib=0; ilib<libList->GetEntries(); ilib++) {
-    currName = libList->At(ilib)->GetName();
+  TIter nextFile(libList);
+  while ( ( objStr = static_cast<TObjString*>(nextFile()) ) ) {
+    currName = objStr->GetName();
     if ( ! currName.BeginsWith("/") ) currName.Prepend(Form("%s/",inDir.Data()));
-    if ( currName.EndsWith(".cxx") || currName.EndsWith(".C") ) {
-      TObjArray arr(2);
-      arr.SetOwner();
-      arr.AddAt(new TObjString(currName),1);
-      currName.ReplaceAll(".cxx",".h");
-      arr.AddAt(new TObjString(currName),0);
-      for ( Int_t ifile=0; ifile<arr.GetEntries(); ifile++ ) {
-        currName = arr.At(ifile)->GetName();
-        if ( gSystem->AccessPathName(currName.Data()) == 0 ) {
-          TString dirName = gSystem->DirName(currName.Data());
-          if ( dirName.IsNull() || dirName == "." ) continue;
-          command = Form("cp -p %s %s/;", currName.Data(), workDirFull.Data());
-        }
-        else command = Form("className=`find %s -name %s`; cp -p $className %s/;", aliceSrcDir.Data(), gSystem->BaseName(currName.Data()), workDirFull.Data());
-        if ( ! PerformAction(command, yesToAll) ) {
-          printf("Error: could not create %s\n", currName.Data());
-          isOk = kFALSE;
-          break;
-        }
-        if ( currName.EndsWith(".C") ) break;
-      }
-    }
+    if ( currName.EndsWith(".so") ) continue;
     else if ( currName.Contains(".par") ) {
       if ( gSystem->AccessPathName(currName.Data()) ) {
         TString baseName = gSystem->BaseName(currName.Data());
@@ -716,6 +709,20 @@ Bool_t CopyFilesLocally ( TString libraries, TString inputName, TString analysis
           command = "tar -xzf OADB.par; rsync -avu --exclude=.svn --exclude=PROOF-INF.OADB $ALICE_ROOT/OADB/ OADB/; tar -czf OADB.par OADB";
           PerformAction(command, yesToAll);
         }
+      }
+    }
+    else { // Copy all additional files
+      // FIXME: we can maybe move them away from the "library" part...
+      if ( gSystem->AccessPathName(currName.Data()) == 0 ) {
+        TString dirName = gSystem->DirName(currName.Data());
+        if ( dirName.IsNull() || dirName == "." ) continue;
+        command = Form("cp -p %s %s/;", currName.Data(), workDirFull.Data());
+      }
+      else if ( currName.EndsWith(".h") || currName.EndsWith(".cxx") || currName.EndsWith(".C") ) command = Form("className=`find %s -name %s`; cp -p $className %s/;", aliceSrcDir.Data(), gSystem->BaseName(currName.Data()), workDirFull.Data());
+      if ( ! PerformAction(command, yesToAll) ) {
+          printf("Error: could not create %s\n", currName.Data());
+          isOk = kFALSE;
+          break;
       }
     }
     if (! isOk ) break;
@@ -849,7 +856,7 @@ Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TSt
   // compile additional tasks on workers
   for ( Int_t isrc=0; isrc<extraSrcs.GetEntries(); isrc++ ) {
     TString currSrc = extraSrcs.At(isrc)->GetName();
-    gProof->Load(Form("%s+g",currSrc.Data()),notOnClient);
+    gProof->Load(Form("%s++g",currSrc.Data()),notOnClient);
   }
   return kTRUE;
 }
