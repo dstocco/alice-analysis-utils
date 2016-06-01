@@ -210,7 +210,20 @@ TString GetSoftVersion ( TString softType, TString softVersions )
     if ( ! softVersions.Contains("aliroot") ) {
       if ( ! softVersions.IsNull() ) softVersions.Append(",");
       TDatime dt;
-      softVersions.Append(Form("aliphysics=vAN-%i-1",dt.GetDate()-1));
+      Int_t day = dt.GetDay()-1;
+      Int_t month = dt.GetMonth();
+      Int_t year = dt.GetYear();
+      if ( day == 0 ) {
+        day = 28;
+        month--;
+        if ( month == 0 ) {
+          month = 12;
+          year--;
+        }
+      }
+      TString currDate = dt.GetDate();
+      if ( dt.GetDay() == 1 )
+      softVersions.Append(Form("aliphysics=vAN-%i%02i%02i-1",year,month,day));
     }
   }
 
