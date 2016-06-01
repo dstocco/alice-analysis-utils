@@ -331,10 +331,12 @@ TString GetRunNumber ( TString queryString )
 TString GetDataDir ( TString queryString )
 {
   TString basePath = GetGridQueryVal(queryString,"BasePath");
-  TString runNum = GetRunNumber(queryString);
   if ( basePath.IsNull() ) return "";
-  Int_t idx = basePath.Index(runNum);
-  basePath.Remove(idx-1);
+  TString runNum = GetRunNumber(queryString);
+  if ( ! runNum.IsNull() ) {
+    Int_t idx = basePath.Index(runNum);
+    basePath.Remove(idx-1);
+  }
   return basePath;
 }
 
@@ -343,13 +345,19 @@ TString GetDataPattern ( TString queryString )
 {
   TString basePath = GetGridQueryVal(queryString,"BasePath");
   TString fileName = GetGridQueryVal(queryString,"FileName");
-  TString runNum = GetRunNumber(queryString);
   if ( basePath.IsNull() || fileName.IsNull() ) return "";
-  Int_t idx = basePath.Index(runNum) + runNum.Length();
-  basePath.Remove(0,idx+1);
-  if ( ! basePath.EndsWith("/") ) basePath.Append("/");
-  basePath += Form("*%s",fileName.Data());
-  return basePath;
+  fileName.Prepend("*");
+  TString runNum = GetRunNumber(queryString);
+  if ( ! runNum.IsNull() ) {
+    Int_t idx = basePath.Index(runNum) + runNum.Length();
+    basePath.Remove(0,idx+1);
+    if ( ! basePath.IsNull() ) {
+      if ( ! basePath.EndsWith("/") ) basePath.Append("/");
+      fileName.Prepend(basePath.Data());
+    }
+  }
+
+  return fileName;
 }
 
 
@@ -1102,13 +1110,33 @@ TObject* CreateAlienHandler ( TString runMode, TString inputName, TString inputO
     inFile.close();
   }
 
+  TString gridWorkDir = "analysis";
   if ( ! IsMC(inputOptions) ) {
     plugin->SetRunPrefix("000");
-    if ( ! workDir.IsNull() && ! period.IsNull() ) {
-      plugin->SetGridWorkingDir(Form("analysis/%s/%s",period.Data(),workDir.Data()));
-    }
+    gridWorkDir = "mcAna";
   }
-  plugin->AddRunList(sRunList.Data());
+  if ( ! workDir.IsNull() && ! period.IsNull() ) {
+    gridWorkDir += Form("/%s/%s",period.Data(),workDir.Data());
+    printf("WARNING: setting a custom grid working dir: %s\n",gridWorkDir.Data());
+    plugin->SetGridWorkingDir(gridWorkDir.Data());
+  }
+  else {
+    printf("\nWARNING: GridWorkDir is not set. You have to do it in your macro:\n");
+    printf("AliAnalysisAlien* plugin = static_cast<AliAnalysisAlien*>(AliAnalysisManager::GetAnalysisManager()->GetGridHandler());\n");
+    printf("if ( plugin ) AliAnalysisManager::GetAnalysisManager()->GetGridHandler()->SetGridWorkingDir(\"workDirRelativeToHome\");\n\n");
+  }
+
+  if ( sRunList.IsNull() ) {
+    printf("\ERROR: the alien plugin expects a run list. This could not be found in the input:\n");
+    printf("%s\n",inputName.Data());
+    printf("This might be a custom production...but the plugin will not be able to handle it.\n\n");
+//    printf("It might be that this is a special MC production.\n\n");
+//    printf("Assume that the path you're passing is indeed a file...\n\n");
+//    TString dataFile = Form("%s/%s",dataDir.Data(),dataPattern.Data());
+//    dataFile.ReplaceAll("*","");
+//    plugin->AddDataFile(dataFile.Data());
+  }
+  else plugin->AddRunList(sRunList.Data());
   plugin->SetGridDataDir(dataDir.Data());
   plugin->SetDataPattern(dataPattern.Data());
 
@@ -1349,6 +1377,7 @@ void StartAnalysis ( TString runMode, TString analysisMode, TString inputName, T
 
   if ( sMode.IsNull() ) return;
 
+  if ( IsPodMachine(analysisMode) ) inputName = GetDatasetName();
   gSystem->ExpandPathName(inputName);
 
   AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
