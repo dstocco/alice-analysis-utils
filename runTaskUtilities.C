@@ -530,7 +530,7 @@ Bool_t CopyAdditionalFilesLocally ( TString additionalFile, Bool_t warnOnMissing
     gSystem->ExpandPathName(currFile);
     if ( gSystem->AccessPathName(currFile) ) {
       if ( warnOnMissing ) {
-        printf("Error: could not copy %s\n", currFile.Data());
+        printf("\nError: could not copy %s\n\n", currFile.Data());
         isOk = kFALSE;
       }
     }
@@ -625,7 +625,7 @@ Bool_t WorkDir ( TString runMode, TString analysisMode, TString workDir )
   Bool_t makeDir = ( gSystem->AccessPathName(workDir) != 0 );
   if ( sMode == "terminateonly" ) {
     if ( makeDir ) {
-      printf("Error: mode %s requires an existing workDir containing the analysis results!\n",sMode.Data());
+      printf("\nError: mode %s requires an existing workDir containing the analysis results!\n\n",sMode.Data());
       return kFALSE;
     }
   }
@@ -1140,7 +1140,7 @@ TObject* CreateAlienHandler ( TString runMode, TString inputName, TString inputO
   }
 
   if ( sRunList.IsNull() ) {
-    printf("\ERROR: the alien plugin expects a run list. This could not be found in the input:\n");
+    printf("\nERROR: the alien plugin expects a run list. This could not be found in the input:\n");
     printf("%s\n",inputName.Data());
     printf("This might be a custom production...but the plugin will not be able to handle it.\n\n");
 //    printf("It might be that this is a special MC production.\n\n");
