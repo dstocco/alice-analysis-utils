@@ -23,7 +23,7 @@ Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts
   if ( isMC ) {
 //    trigClasses = "ANY,CM*,MU*";
 //    trigLevels = "CMSNGL:Lpt,MUHigh:Hpt,CMULLO:LptLpt,CMULHI:HptHpt,CMLKLO:LptLpt,CMLKHI:HptHpt,MULow:Lpt,MUHigh:Hpt,MULU:LptLpt,MULL:LptLpt,MUHU:HptHpt,MUHL:HptHpt";
-    trigClasses = "ANY,CMSNGL:Lpt,MUHigh:Hpt,CMULLO:Lpt2,CMULHI:Hpt2,CMLKLO:Lpt2,CMLKHI:Hpt2,MULow:Lpt,MUHigh:Hpt,MULU:Lpt2,MULL:Lpt2,MUHU:Hpt2,MUHL:Hpt2";
+    trigClasses = "ANY,CMSNGL:Lpt,MUHigh:Hpt,CMULLO:Lpt2,CMULHI:Hpt2,CMLKLO:Lpt2,CMLKHI:Hpt2,MULow:Lpt,MUHigh:Hpt,MULU:Lpt2,MULL:Lpt2,MUHU:Hpt2,MUHL:Hpt2,CMSNGL-B-NOPF-MUON:Lpt,CMULLO-B-NOPF-MUON:Lpt2,CMULHI-B-NOPF-MUON:Hpt2,CMLKLO-B-NOPF-MUON:Lpt2,CMLKHI-B-NOPF-MUON:Hpt2";
     trigInputs = "0MSL:5,0MSH:6,0MUL:13,0MUH:14,0MLL:15,0MLH:16";
   }
   else {
