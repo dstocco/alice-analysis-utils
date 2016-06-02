@@ -1088,8 +1088,6 @@ TObject* CreateAlienHandler ( TString runMode, TString inputName, TString inputO
 
   if ( runMode == "test" ) plugin->SetFileForTestMode(inputName.Data());
 
-  plugin->SetAdditionalRootLibs("libXMLParser.so libGui.so libProofPlayer.so");
-
   if ( ! runMode.Contains("terminate") ) plugin->SetMergeViaJDL();
 
   TString period = GetPeriod(inputOptions);
@@ -1203,7 +1201,6 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
   runMode.ToLower();
   analysisOptions.ToUpper();
 
-  if ( IsPodMachine(analysisMode) ) inputName = GetDatasetName();
   gSystem->ExpandPathName(inputName);
 
   TString currDir = gSystem->pwd();
@@ -1388,7 +1385,6 @@ void StartAnalysis ( TString runMode, TString analysisMode, TString inputName, T
 
   if ( sMode.IsNull() ) return;
 
-  if ( IsPodMachine(analysisMode) ) inputName = GetDatasetName();
   gSystem->ExpandPathName(inputName);
 
   AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
