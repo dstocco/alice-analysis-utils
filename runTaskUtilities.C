@@ -221,8 +221,6 @@ TString GetSoftVersion ( TString softType, TString softVersions )
           year--;
         }
       }
-      TString currDate = dt.GetDate();
-      if ( dt.GetDay() == 1 )
       softVersions.Append(Form("aliphysics=vAN-%i%02i%02i-1",year,month,day));
     }
   }
