@@ -131,7 +131,7 @@ void runNumberToDataset ( TString runListFilename, TString searchString, TString
   while ( ! inFile.eof() ) {
     currLine.ReadLine(inFile);
     TString runNum = GetRunNumber(currLine);
-    if ( ! runNum.IsNull() ) outFile << Form(searchString,runNum.Data()) << endl;
+    if ( ! runNum.IsNull() ) outFile << Form(searchString,runNum.Atoi()) << endl;
   }
   inFile.close();
   outFile.close();
