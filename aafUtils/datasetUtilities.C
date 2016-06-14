@@ -125,16 +125,39 @@ void runNumberToDataset ( TString runListFilename, TString searchString, TString
     printf("Error: cannot find %s\n",runListFilename.Data());
   }
 
+  TObject* obj = 0x0;
+  TObjArray* runList = 0x0;
+  if ( gSystem->AccessPathName(runListFilename) ) {
+    runListFilename.ReplaceAll(","," ");
+    runList = runListFilename.Tokenize(" ");
+  }
+  else {
+    runList = new TObjArray();
+    runList->SetOwner();
+    ifstream inFile(runListFilename.Data());
+    TString currLine = "";
+    while ( ! inFile.eof() ) {
+      currLine.ReadLine(inFile);
+      currLine.ReplaceAll(","," ");
+      TObjArray* arr = currLine.Tokenize(" ");
+      TIter next(arr);
+      while ( (obj = next()) )  {
+        runList->Add(new TObjString(obj->GetName()));
+      }
+      delete arr;
+    }
+    inFile.close();
+  }
+
+
+  TIter next(runList);
   ofstream outFile(outputDatasetName);
-  ifstream inFile(runListFilename.Data());
-  TString currLine = "";
-  while ( ! inFile.eof() ) {
-    currLine.ReadLine(inFile);
-    TString runNum = GetRunNumber(currLine);
+  while ( (obj = next()) ) {
+    TString runNum = GetRunNumber(obj->GetName());
     if ( ! runNum.IsNull() ) outFile << Form(searchString,runNum.Atoi()) << endl;
   }
-  inFile.close();
   outFile.close();
+  delete runList;
 }
 
 //______________________________________________________________________________
