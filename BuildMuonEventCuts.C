@@ -47,7 +47,7 @@ Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts
       trigClasses = "CINT7-B-NOPF-ALLNOTRD,CINT7-B-NOPF-ALLNOTRD&0MSL,CINT7-B-NOPF-ALLNOTRD&0MSH,CMSL7-B-NOPF-MUON:Lpt,CMSL7-B-NOPF-MUON&0MSH:Lpt,CMSH7-B-NOPF-MUON:Hpt";
       trigInputs = "0MSL:12,0MSH:13,0MUL:14";
     }
-    else if ( period == "LHC15o" ) {
+    else if ( period.BeginsWith("LHC15") ) {
       trigInputs = "0MSL:17,0MSH:18,0MLL:19,0MUL:20";
     }
   }
