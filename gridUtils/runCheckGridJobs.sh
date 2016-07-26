@@ -11,13 +11,22 @@ elif [ -e $HOME/.bashrc ]; then
 fi
 
 if [ -z $ROOTSYS ]; then
-  hasCvmfs=$(ls /cvmfs/alice.cern.ch)
-  if [ "hasCvmfs" != "" ]; then
+  hasCvmfs=$(ls /cvmfs/alice.cern.ch 2> /dev/null)
+  if [ "$hasCvmfs" != "" ]; then
     source /cvmfs/alice.cern.ch/etc/login.sh
+  fi
+
+  if [ -n "$(type -t alienv)" ]; then
     lastVersion=$(alienv q | grep AliPhysics | tail -n 1)
-    eval `alienv printenv $lastVersion`
-  else
+    eval "$(alienv load $lastVersion)"
+  elif [ -n "$(type -t alie)" ]; then
+    lastVersion=$(alie q | grep AliPhysics | tail -n 1)
+    eval "$(alie load $lastVersion)"
+  elif [ -e "$ALISOFT/alice-env.sh" ]; then
     .  $ALISOFT/alice-env.sh -n
+  else
+    echo "Error: cannot load root environment"
+    exit
   fi
 fi
 
@@ -42,10 +51,15 @@ if [[ $proxyValidity == "" || $proxyValidity == "0h:0m:0s" ]]; then
     exit
 fi
 
+pathToMacro="$(dirname $0)"
+if [[ "$pathToMacro" != /* ]]; then
+  pathToMacro="$PWD/$pathToMacro"
+fi
+
 echo "Valid token $isValidToken proxy $proxyValidity" >> $outFilename 2>&1
 
 root -b <<EOF >> $outFilename 2>&1
-.L $MACROS/gridAnalysis/gridCommands.C+
+.L $pathToMacro/gridCommands.C+
 gridFindFailed(${minRunNum},"ALL",-1,"${userMail}");
 .q
 EOF
