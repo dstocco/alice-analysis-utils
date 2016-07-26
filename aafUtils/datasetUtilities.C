@@ -121,8 +121,9 @@ void getFileCollection ( TString inFilename, TString outFileCollection = "fileCo
 void runNumberToDataset ( TString runListFilename, TString searchString, TString outputDatasetName = "dataset.txt" )
 {
   gSystem->ExpandPathName(runListFilename);
-  if ( gSystem->AccessPathName(runListFilename) ) {
+  if ( runListFilename.Contains("$") ) {
     printf("Error: cannot find %s\n",runListFilename.Data());
+    return;
   }
 
   TObject* obj = 0x0;
