@@ -18,7 +18,7 @@ if [ -z $ROOTSYS ]; then
 
   if [ -n "$(type -t alienv)" ]; then
     lastVersion=$(alienv q | grep AliPhysics | tail -n 1)
-    eval "$(alienv load $lastVersion)"
+    eval "$(alienv printenv $lastVersion)"
   elif [ -n "$(type -t alie)" ]; then
     lastVersion=$(alie q | grep AliPhysics | tail -n 1)
     eval "$(alie load $lastVersion)"
