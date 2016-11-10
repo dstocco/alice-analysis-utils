@@ -62,6 +62,7 @@ function SetupDir()
     echo "Please enter specific: dataType/year/period/pass"
     read subDir
   fi
+  subDir=${subDir#\/}
 }
 
 
@@ -96,7 +97,7 @@ function GetRemoteQAFiles()
   trackerFile="$relPath/QA_muon_tracker.pdf"
   if [ ! -e "$trackerFile" ]; then
     echo "Problems in downloading files..."
-    retrun 1
+    return 1
   fi
 
   return 0
