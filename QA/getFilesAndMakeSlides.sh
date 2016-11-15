@@ -125,18 +125,19 @@ function MakeQASlides() {
     return 1
   fi
 
-  BackupLatex
+#  BackupLatex
   local period="$(GetPeriod)"
   local pass="$(GetPass)"
 
   ##### Ask for a list of triggers
   if [ -z $triggerList ]; then
-    if [ -e "$backupTexFile" ]; then
-      triggerList=$(grep "%TriggerList=" $backupTexFile | cut -d "=" -f2)
+    if [ -e "$texFile" ]; then
+      triggerList=$(grep "%TriggerList=" $texFile | cut -d "=" -f2)
     fi
     if [ -z $triggerList ]; then
       open "QA_muon_tracker.pdf"
       echo "Trigger list (comma separated) for $PWD"
+      echo "(e.g. CINT7-B-NOPF-MUFAST,CMSL7-B-NOPF-MUFAST,CMSH7-B-NOPF-MUFAST,CMUL7-B-NOPF-MUFAST )"
       read triggerList
     fi
   fi
@@ -372,7 +373,7 @@ function main() {
   MakeRunListQA
   MakeRunListLogbook "$(GetPeriod)"
 
-  SummaryFromExistingSlides
+#  SummaryFromExistingSlides
   UpdateWithLogbookInfo
 
   CompileLatex
