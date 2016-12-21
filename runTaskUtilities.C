@@ -1122,8 +1122,9 @@ TObject* CreateAlienHandler ( TString runMode, TString inputName, TString inputO
   TString gridWorkDir = "analysis";
   if ( ! IsMC(inputOptions) ) {
     plugin->SetRunPrefix("000");
-    gridWorkDir = "mcAna";
+    gridWorkDir = "analysis";
   }
+  else gridWorkDir = "mcAna";
   if ( ! workDir.IsNull() && ! period.IsNull() ) {
     gridWorkDir += Form("/%s/%s",period.Data(),workDir.Data());
     printf("WARNING: setting a custom grid working dir: %s\n",gridWorkDir.Data());
