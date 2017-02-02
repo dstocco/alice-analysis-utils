@@ -8,6 +8,11 @@
 #include "TArrayI.h"
 #include "TFileCollection.h"
 #include "TMath.h"
+#include "TFile.h"
+#include "TFileInfo.h"
+#include "TObjArray.h"
+#include "TObjString.h"
+#include "THashList.h"
 
 #include "TProof.h" // FIXME: see later
 #endif
@@ -137,6 +142,70 @@ void getFileCollection ( TString inFilename, TString outFileCollection = "fileCo
 
 //  std::cout.rdbuf(coutbuf); //reset to standard output again
 
+}
+
+//______________________________________________________________________________
+void changeCollection ( TString inFilename, TString removeFiles/*, TString addFiles = ""*/ )
+{
+  // Change the collection
+
+  gSystem->ExpandPathName(inFilename);
+  TString outFilename = inFilename;
+  outFilename.ReplaceAll(".root","_modified.root");
+  TFile* file = TFile::Open(inFilename.Data());
+  if ( ! file ) {
+    printf("Fatal: cannot find %s\n",inFilename.Data());
+    return;
+  }
+
+  TFileCollection* fc = static_cast<TFileCollection*>(file->Get("dataset"));
+  if ( ! fc ) {
+    printf("Fatal: cannot find dataset in %s\n",inFilename.Data());
+    return;
+  }
+  TFileCollection outFc;
+  outFc.SetName(fc->GetName());
+
+  TObjArray* removeList = removeFiles.Tokenize(",");
+
+  TIter next(fc->GetList());
+  TFileInfo* info = 0x0;
+  TObject* obj = 0x0;
+  while ( (info = static_cast<TFileInfo*>(next())) ) {
+    TString filename = info->GetCurrentUrl()->GetFile();
+    Bool_t addFile = kTRUE;
+    TIter nextRemove(removeList);
+    while ( (obj = nextRemove()) ) {
+      if ( filename.Contains(obj->GetName()) ) {
+        addFile = kFALSE;
+        removeList->Remove(obj);
+        removeList->Compress();
+        break;
+      }
+    }
+    if ( addFile ) {
+      printf("Adding file %s\n",filename.Data());
+      outFc.Add(info);
+    }
+  }
+  if ( ! removeFiles.IsNull() && removeList->GetEntries() > 0 ) {
+    printf("Nothing removed. This is the list of files:");
+    fc->Print("F");
+    return;
+  }
+  delete removeList;
+
+  /*
+  TObjArray* addList = addFiles.Tokenize(",");
+  TIter nextAdd(addList);
+  while ( (obj = nextAdd()) ) {
+    outFc.Add(obj->GetName());
+  }
+  delete addList;
+   */
+
+
+  outFc.SaveAs(outFilename.Data());
 }
 
 
