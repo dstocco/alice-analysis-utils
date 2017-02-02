@@ -793,7 +793,7 @@ Bool_t LoadAddTasks ( TString libraries )
 }
 
 //_______________________________________________________
-Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TString softVersions, Bool_t notOnClient = kFALSE, TString alirootMode = "base" )
+Bool_t LoadLibsProof ( TString libraries, TString includePaths, TString aaf, TString softVersions, Bool_t notOnClient = kTRUE, TString alirootMode = "base" )
 {
   aaf.ToLower();
   TString proofCluster = GetProofInfo("proofcluster",aaf);
@@ -966,7 +966,7 @@ TObject* CreateInputObject ( TString runMode, TString analysisMode, TString inpu
 
 
 //______________________________________________________________________________
-void WritePodExecutable ( TString analysisOptions )
+void WritePodExecutable ( TString analysisOptions, TString libraries )
 {
   TString filename = "runPod.sh";
   ofstream outFile(filename.Data());
@@ -1002,9 +1002,22 @@ void WritePodExecutable ( TString analysisOptions )
     outFile << "  echo \"$line\" > " << dsName.Data() << endl;
   }
   TString rootCmd = GetRunMacro();
-  rootCmd.Prepend("root -b -q '");
-  rootCmd.Append("'");
-  outFile << rootCmd.Data() << endl;
+//  rootCmd.Prepend("root -b -q '");
+//  rootCmd.Append("'");
+//  outFile << rootCmd.Data() << endl;
+  outFile << "root -b << EOF" << endl;
+  TObjArray* libs = libraries.Tokenize(" ");
+  TObjString* currLib = 0x0;
+  TIter next(libs);
+  while ( (currLib = static_cast<TObjString*>(next())) ) {
+    if ( currLib->String().EndsWith(".par") ) {
+      outFile << "AliAnalysisAlien::SetupPar(\"" << currLib->GetName() << "\");" << endl;
+    }
+  }
+  delete libs;
+  outFile << ".x " << rootCmd.Data() << endl;
+  outFile << ".q" << endl;
+  outFile << "EOF" << endl;
   if ( splitPerRun ) {
     outFile << "cd $TASKDIR" << endl;
     outFile << "done < " << dsName.Data() << endl;
@@ -1211,7 +1224,7 @@ TMap* SetupAnalysis ( TString runMode = "test", TString analysisMode = "grid",
     CopyAdditionalFilesLocally("$TASKDIR/runTaskUtilities.C $TASKDIR/BuildMuonEventCuts.C $TASKDIR/SetupMuonBasedTasks.C",kFALSE);
     if ( IsPod(analysisMode) ) {
       if ( inputName.EndsWith(".root") ) CopyAdditionalFilesLocally(inputName);
-      WritePodExecutable(analysisOptions);
+      WritePodExecutable(analysisOptions,libraries);
     }
   }
 
