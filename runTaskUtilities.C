@@ -40,6 +40,7 @@
 #include "TMap.h"
 #include "TDatime.h"
 #include "TPRegexp.h"
+#include "TRegexp.h"
 #include "TFileCollection.h"
 #include "TApplication.h"
 
@@ -317,25 +318,11 @@ TString GetGridQueryVal ( TString queryString, TString keyword )
 TString GetRunNumber ( TString queryString )
 {
   TString found = "";
+  TPRegexp re("(^|/)[0-9]+(/|;|$)");
   queryString.ReplaceAll("*",""); // Add protection for datasets with a star inside
-  for ( Int_t ndigits=9; ndigits>=6; ndigits-- ) {
-    TString sre = "";
-    for ( Int_t idigit=0;idigit<ndigits; idigit++ ) sre += "[0-9]";
-    found = queryString(TRegexp(sre.Data()));
-    if ( ! found.IsNull() ) break;
-  }
+  found = queryString(re);
+  if ( ! found.IsNull() ) found = found(TRegexp("[0-9]+"));
   return found;
-//  TString found = "";
-//  TObjArray* arr = queryString.Tokenize("/");
-//  for ( Int_t iarr=0; iarr<arr->GetEntries(); iarr++ ) {
-//    TString currPart = arr->At(iarr)->GetName();
-//    if ( currPart.IsDigit() && currPart.Length() >=6 && currPart.Length() <=9 ) {
-//      found = currPart;
-//      break;
-//    }
-//  }
-//  delete arr;
-//  return found;
 }
 
 //______________________________________________________________________________
