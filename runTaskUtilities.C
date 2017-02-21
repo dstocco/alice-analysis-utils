@@ -318,11 +318,14 @@ TString GetGridQueryVal ( TString queryString, TString keyword )
 TString GetRunNumber ( TString queryString )
 {
   TString found = "";
-  TPRegexp re("(^|/)[0-9]+(/|;|$)");
+  TPRegexp re("(^|/)[0-9][0-9][0-9][0-9][0-9][0-9]+(/|;|$)");
   queryString.ReplaceAll("*",""); // Add protection for datasets with a star inside
   found = queryString(re);
-  if ( ! found.IsNull() ) found = found(TRegexp("[0-9]+"));
-  return found;
+  if ( ! found.IsNull() ) {
+    found = found(TRegexp("[0-9]+"));
+    if ( found.Length() == 6 || (found.Length() == 9 && found.BeginsWith("0")) ) return found;
+  }
+  return "";
 }
 
 //______________________________________________________________________________
