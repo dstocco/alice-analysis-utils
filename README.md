@@ -8,26 +8,24 @@ git clone https://github.com/dstocco/alice-analysis-utils
 ```
 ---
 ## Utilities to run user analyses
-The macro **runTaskUtilities.C** contains a series of methods that can ease the way the user launch his/her analysis, allowing to transparently submit it locally, on AAF or on grid.
+The task **AliTaskSubmitter** contains a series of methods that can ease the way the user launch his/her analysis, allowing to transparently submit it locally, on AAF or on grid.
 
 The utility provides two main methods:
 ```C++
-TMap* SetupAnalysis ( TString runMode, TString analysisMode,
-                      TString inputName,
-                      TString inputOptions,
-                      TString softVersions,
+SetupAnalysis ( TString runMode, TString analysisMode,
+                      TString inputName, TString inputOptions,
+                      TString softVersion,
                       TString analysisOptions,
                       TString libraries,
                       TString includePaths,
                       TString workDir,
                       Bool_t isMuonAnalysis = kTRUE )
 ```
-which takes care of setting up the analysis manager with the correct handlres, add some general tasks if required (see below), and load the required libraries locally. It returns a TMap containing some parsed parameters.
+which takes care of setting up the analysis manager with the correct handlers, add some general tasks if required (see below), and load the required libraries locally.
 
 And
 ```C++
-void StartAnalysis ( TString runMode, TString analysisMode,
-                     TString inputName, TString inputOptions )
+void StartAnalysis ()
 ```
 which should be called after you've added your analysis task to the manager and actually runs the analysis.
 
@@ -60,7 +58,7 @@ The _runMode_ parameter strictly depends on the _analysisMode_. They will be dis
   - _MC_ : load MC handler if needed
   - _EMBED_ : embedding production (needs MC handler, but use non MC option for other things, e.g. Physics Selection)
   - _AOD_ or _ESD_ : the runTaskUtilities tries to guess if you're running on ESDs or AODs from the inputs specified in _inputName_, but you can write it explicitly in case it fails
-- **softVersions**: in proof and grid mode, specifies the root/aliroot/aliphysics version to use. Syntax: _aliphysics=version,aliroot=version,root=version_. One can put only one of the three. The order does not matter.
+- **softVersion**: in proof and grid mode, specifies the aliphysics version to use.
 - **analysisOptions** (optional): it is a space-separated list of keywords. The following are recognized:
   - _NOPHYSSEL_ : do not add the physics selection task in the list of tasks (it is added by default when running on ESDs)
   - _CENTR_: add the centrality tasks
@@ -75,7 +73,7 @@ The _runMode_ parameter strictly depends on the _analysisMode_. They will be dis
 - **includePaths**: the space-separated list of include paths needed by your analysis, e.g. ". $ALICE_ROOT/include $ALICE_PHYSICS/include"
 - **workDir**: the directory in which all of the files needed to run the analysis will be copied. If one re-runs the command inside MyTask, the files are not overwritten. This allows to re-run the same analysis later on. Please notice that this is also the directory used in AliAnalysisAlien::SetGridWorkingDir in grid mode. This is compulsory in grid mode, so, if you decide to leave it blank, you need to directly act on the AliEn plugin:
 ```C++
-    TMap* SetupAnalysis ([...]);
+    SetupAnalysis ([...]);
     AliAnalysisAlien* plugin = static_cast<AliAnalysisAlien*>(AliAnalysisManager::GetAnalysisManager()->GetGridHandler());
     plugin->SetGridWorkingDir("/AliEn/relative/path/to/the/chosen/folder");
 ```
@@ -86,6 +84,7 @@ The _runMode_ parameter strictly depends on the _analysisMode_. They will be dis
 Let us suppose that you have the task AliAnalysisTaskMyTask in PWG/muon.
 You can easily run your code with the following macro:
 
+
 ```C++
 void runTask ( TString runMode, TString analysisMode,
                TString inputName,
@@ -95,28 +94,40 @@ void runTask ( TString runMode, TString analysisMode,
                TString taskOptions = "" )
 {
 
-  gROOT->LoadMacro(gSystem->ExpandPathName("$TASKDIR/runTaskUtilities.C"));
+  gSystem->AddIncludePath("-I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
+  gROOT->LoadMacro(gSystem->ExpandPathName("$TASKDIR/AliTaskSubmitter.cxx+"));
+  AliTaskSubmitter sub;
 
-  SetupAnalysis(runMode,analysisMode,inputName,inputOptions,softVersions,analysisOptions, "libPWGmuon.so MyTaskNotInAliphysics.cxx AddMyTaskNotInAliphysics.C",". $ALICE_ROOT/include $ALICE_PHYSICS/include","MyTask");
+  if ( ! sub.SetupAnalysis(runMode,analysisMode,inputName,inputOptions,softVersions,analysisOptions, "libPWGmuon.so MyTaskNotInAliphysics.cxx AddMyTaskNotInAliphysics.C",". $ALICE_ROOT/include $ALICE_PHYSICS/include","MyTask") ) return;
 
 // AliAnalysisAlien* plugin = static_cast<AliAnalysisAlien*>(AliAnalysisManager::GetAnalysisManager()->GetGridHandler()); // Uncomment it if you want to configure the plugin...
 
-  Bool_t isMC = IsMC(inputOptions);
+  Bool_t isMC = sub.IsMC();
 
   gROOT->LoadMacro("$ALICE_ROOT/PWG/muon/AddMyCommittedTask.C");
   AliAnalysisTaskCommittedMine* task = AddMyCommittedTask(isMC);
 
   MyTaskNotInAliphysics* taskMy = AddMyTaskNotInAliphysics(isMC);
 
-// AliMuonEventCuts* eventCuts = BuildMuonEventCuts(map); // Pre-configured AliMuonEventCuts
-// SetupMuonBasedTask(task,eventCuts,taskOptions,map); // Automatically setup "task" if it derives from AliVAnalysisMuon
+// AliMuonEventCuts* eventCuts = BuildMuonEventCuts(sub.GetMap()); // Pre-configured AliMuonEventCuts
+// SetupMuonBasedTask(task,eventCuts,taskOptions,sub.GetMap()); // Automatically setup "task" if it derives from AliVAnalysisMuon
 
-  StartAnalysis(runMode,analysisMode,inputName,inputOptions);
+  sub.StartAnalysis();
 }
 ```
 **CAVEAT:** remember to export the TASKDIR, so that it points to alice-analysis-utils
 
-To run it on a local AliAOD.root, just run:
+Please notice that the above skeleton can be easily created with:
+```C++
+  gSystem->AddIncludePath("-I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
+  gROOT->LoadMacro(gSystem->ExpandPathName("$TASKDIR/AliTaskSubmitter.cxx+"));
+
+  AliTaskSubmitter sub;
+  sub.WriteTemplateRunTask();
+```
+the command will create a runTask.C that you can then update to include your task.
+
+Finally, to run your task on a local AliAOD.root, just run:
 ```bash
 root -l
 .x runTask.C("full","local","pathTo/AliAODs.root","","");
