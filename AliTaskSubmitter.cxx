@@ -966,6 +966,13 @@ Bool_t AliTaskSubmitter::SetupAnalysis ( const char* runMode, const char* analys
   Init(workDir);
   if ( ! anOptions.Contains("NOPHYSSEL") ) AddPhysicsSelection();
   if ( anOptions.Contains("CENTR") ) AddCentrality(anOptions.Contains("OLDCENTR"));
+
+  TString nWorkersStr = anOptions(TRegexp("NWORKERS=[0-9]+"));
+  if ( ! nWorkersStr.IsNull() ) {
+    nWorkersStr.ReplaceAll("NWORKERS=","");
+    if ( nWorkersStr.IsDigit() ) SetProofNworkers(nWorkersStr.Atoi());
+  }
+
   return kTRUE;
 }
 
@@ -989,6 +996,7 @@ Bool_t AliTaskSubmitter::SetupLocalWorkDir ( TString workDir )
       printf("Found %s in the current working directory\n",classFilename.Data());
       printf("Assume you want to re-run local: do not copy files\n");
     }
+    fWorkDir = fCurrentDir;
     return kTRUE;
   }
 
@@ -1158,7 +1166,7 @@ void AliTaskSubmitter::StartAnalysis () const
   mgr->PrintStatus();
 
   if ( terminateOnly && gSystem->AccessPathName(mgr->GetCommonFileName())) {
-    printf("Cannot find %s : noting done\n",mgr->GetCommonFileName());
+    printf("Cannot find %s : nothing done\n",mgr->GetCommonFileName());
     return;
   }
 
@@ -1182,7 +1190,7 @@ void AliTaskSubmitter::WritePodExecutable () const
   TString filename = Form("%s/runPod.sh",fWorkDir.Data());
   ofstream outFile(filename.Data());
   outFile << "#!/bin/bash" << endl;
-  outFile << "nWorkers=${1-88}" << endl;
+  outFile << "nWorkers=${1-80}" << endl;
   outFile << "vafctl start" << endl;
   outFile << "vafreq $nWorkers" << endl;
   outFile << "vafwait $nWorkers" << endl;
