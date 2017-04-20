@@ -964,7 +964,7 @@ Bool_t AliTaskSubmitter::SetupAnalysis ( const char* runMode, const char* analys
   anOptions.ToUpper();
   SetMixingEvent(anOptions.Contains("MIXED"));
   Init(workDir);
-  if ( ! anOptions.Contains("NOPHYSSEL") ) AddPhysicsSelection();
+  if ( fFileType != kAOD && ! anOptions.Contains("NOPHYSSEL") ) AddPhysicsSelection();
   if ( anOptions.Contains("CENTR") ) AddCentrality(anOptions.Contains("OLDCENTR"));
 
   TString nWorkersStr = anOptions(TRegexp("NWORKERS=[0-9]+"));
