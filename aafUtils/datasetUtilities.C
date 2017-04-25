@@ -53,7 +53,7 @@ void getFileCollection ( TString inFilename, TString outFileCollection = "fileCo
     delete arr;
   }
 
-  TProof::Open(aaf.Data(),"masteronly");
+  if ( ! gProof ) TProof::Open(aaf.Data(),"masteronly");
   if ( forceUpdate && ! searchString.Contains("ForceUpdate") ) {
     searchString.Append(";ForceUpdate");
     searchString.ReplaceAll(";;",";");
@@ -272,9 +272,3 @@ void datasetToRunNumber ( TString datasetFilename, TString outputRunListName = "
   inFile.close();
   outFile.close();
 }
-
-
-
-
-
-
