@@ -61,6 +61,8 @@ fIsPodMachine(0),
 fFileType(0),
 fIsMC(0),
 fIsEmbed(0),
+fHasCentralityInfo(0),
+fHasPhysSelInfo(0),
 fLoadAllBranches(0),
 fEventMixing(0),
 fTaskDir(),
@@ -103,7 +105,7 @@ AliTaskSubmitter::~AliTaskSubmitter()
 }
 
 //_______________________________________________________
-Bool_t AliTaskSubmitter::AddCentrality ( Bool_t oldFramework ) const
+Bool_t AliTaskSubmitter::AddCentrality ( Bool_t oldFramework )
 {
   /// Add centrality in the train
 
@@ -127,7 +129,7 @@ Bool_t AliTaskSubmitter::AddCentrality ( Bool_t oldFramework ) const
 }
 
 //_______________________________________________________
-Bool_t AliTaskSubmitter::AddPhysicsSelection () const
+Bool_t AliTaskSubmitter::AddPhysicsSelection ()
 {
   /// Add physics selection task in the train
 
@@ -139,6 +141,8 @@ Bool_t AliTaskSubmitter::AddPhysicsSelection () const
   AliPhysicsSelectionTask* physSelTask = reinterpret_cast<AliPhysicsSelectionTask*>(gInterpreter->ProcessLine(Form("AddTaskPhysicsSelection(%i)",treatAsMC)));
   if ( ! treatAsMC ) physSelTask->GetPhysicsSelection()->SetUseBXNumbers(kFALSE); // Needed if you want to merge runs with different running scheme
   physSelTask->GetPhysicsSelection()->SetPassName(fPass.Data());
+
+  fHasPhysSelInfo = kTRUE;
 
   return kTRUE;
 }
@@ -469,8 +473,8 @@ TMap* AliTaskSubmitter::GetMap ()
     TString physSel = "NO", centr = "NO";
     AliAnalysisManager* mgr = AliAnalysisManager::GetAnalysisManager();
     if ( mgr ) {
-      if ( mgr->GetTask("AliPhysicsSelectionTask") ) physSel = "YES";
-      if ( mgr->GetTask("taskMultSelection") || mgr->GetTask("CentralitySelection") ) centr = "YES";
+      if ( fHasPhysSelInfo ) physSel = "YES";
+      if ( fHasCentralityInfo ) centr = "YES";
     }
     fMap.Add(new TObjString("physicsSelection"),new TObjString(physSel));
     fMap.Add(new TObjString("centrality"),new TObjString(centr));
@@ -981,7 +985,10 @@ Bool_t AliTaskSubmitter::SetupAnalysis ( const char* runMode, const char* analys
   anOptions.ToUpper();
   SetMixingEvent(anOptions.Contains("MIXED"));
   Init(workDir);
-  if ( fFileType != kAOD && ! anOptions.Contains("NOPHYSSEL") ) AddPhysicsSelection();
+  if ( ! anOptions.Contains("NOPHYSSEL") ) {
+    fHasPhysSelInfo = kTRUE;
+    if ( fFileType != kAOD ) AddPhysicsSelection();
+  }
   if ( anOptions.Contains("CENTR") ) AddCentrality(anOptions.Contains("OLDCENTR"));
 
   TString nWorkersStr = anOptions(TRegexp("NWORKERS=[0-9]+"));

@@ -45,11 +45,24 @@ public:
   TMap* GetMap();
 
   TString GetPass ( TString checkString ) const;
+  /// Get pass
+  TString GetPass () const { return fPass; }
   TString GetPeriod ( TString checkString ) const;
+  /// Get period
+  TString GetPeriod () const { return fPeriod; }
   TString GetRunNumber ( TString checkString ) const;
+
+  /// Has centrality
+  Bool_t HasCentralityInfo () const { return fHasCentralityInfo; }
+
+  /// Has physics selection
+  Bool_t HasPhysSelInfo() const { return fHasPhysSelInfo; }
 
   /// Is MC
   Bool_t IsMC () const { return fIsMC; }
+
+  /// Is embedded MC
+  Bool_t IsEmbed () const { return fIsEmbed; }
 
   void SetAdditionalFiles ( const char* fileList );
   Bool_t SetAliPhysicsBuildDir ( const char* aliphysicsBuildDir );
@@ -80,8 +93,8 @@ public:
 
 private:
 
-  Bool_t AddPhysicsSelection () const;
-  Bool_t AddCentrality ( Bool_t oldFramework = kFALSE ) const;
+  Bool_t AddPhysicsSelection ();
+  Bool_t AddCentrality ( Bool_t oldFramework = kFALSE );
 
   Bool_t ConnectToPod () const;
   Bool_t CopyDatasetLocally ();
@@ -123,6 +136,8 @@ private:
   Int_t fFileType; ///< AOD or ESD
   Bool_t fIsMC; ///< Is MC
   Bool_t fIsEmbed; ///< Is embedded MC
+  Bool_t fHasCentralityInfo; /// Has centrality information
+  Bool_t fHasPhysSelInfo; /// Has physics selection
   Bool_t fLoadAllBranches; ///< Load all branches in ESDs
   Bool_t fEventMixing; ///< Use event mixing
   TString fTaskDir; ///< Base directory of tasks
