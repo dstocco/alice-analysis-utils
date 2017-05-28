@@ -51,13 +51,13 @@ public:
   /// Is MC
   Bool_t IsMC () const { return fIsMC; }
 
+  void SetAdditionalFiles ( const char* fileList );
   Bool_t SetAliPhysicsBuildDir ( const char* aliphysicsBuildDir );
   Bool_t SetInput ( const char* inputName, const char* inputOptions );
   void SetLibraries ( const char* libraries, const char* includePaths );
   Bool_t SetMode ( const char* runMode, const char* analysisMode );
   /// Enable event mixing
   void SetMixingEvent ( Bool_t mixingEvent ) { fEventMixing = mixingEvent; }
-  void SetSearchPaths ( const char* searchPath );
   void SetSoftVersion ( TString softVersion );
 
   /// Set number of workers for proof
@@ -72,6 +72,7 @@ public:
                         const char*  analysisOptions = "",
                         const char*  libraries = "", const char*  includePaths = "",
                         const char*  workDir = "",
+                        const char* additionalFiles = "",
                         Bool_t isMuonAnalysis = kTRUE );
   void StartAnalysis() const;
 
@@ -149,6 +150,7 @@ private:
   std::vector<std::string> fIncludePaths; ///< List of include paths
   std::vector<std::string> fSearchPaths; ///< List of include paths
   std::vector<std::string> fUtilityMacros; ///< List of utility macros
+  std::vector<std::string> fAdditionalFiles; ///< List of additional files
   std::vector<Int_t> fRunList; ///< Run list
   TMap fMap; ///< Map of values to be passed to macros (for backward compatibility)
 

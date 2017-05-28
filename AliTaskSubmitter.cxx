@@ -88,6 +88,7 @@ fLibraries(),
 fIncludePaths(),
 fSearchPaths(),
 fUtilityMacros(),
+fAdditionalFiles(),
 fRunList(),
 fMap()
 {
@@ -537,6 +538,8 @@ Bool_t AliTaskSubmitter::Init ( const char* workDir )
 
   if ( ! SetupLocalWorkDir ( workDir ) ) return kFALSE;
 
+  for ( auto& str : fAdditionalFiles ) CopyFile(str.c_str());
+
   if ( fIsPodMachine ) fInputName = gSystem->GetFromPipe("ls dataset.*");
 
   gSystem->cd(fWorkDir.Data());
@@ -566,7 +569,6 @@ Bool_t AliTaskSubmitter::Init ( const char* workDir )
   AliAnalysisManager *mgr = new AliAnalysisManager("testAnalysis");
   ////  PerformAction(Form("cd %s",outDir.Data()),yesToAll);
   if ( plugin ) mgr->SetGridHandler(plugin);
-
 
   AliInputEventHandler *handler = 0x0;
   AliMCEventHandler *mcHandler = 0x0;
@@ -749,6 +751,20 @@ Bool_t AliTaskSubmitter::PerformAction ( TString command, Bool_t& yesToAll ) con
 }
 
 //_______________________________________________________
+void AliTaskSubmitter::SetAdditionalFiles ( const char* fileList )
+{
+  /// Set additional files to be copied to the workong directory
+  std::string flist(fileList);
+  std::istringstream flists(flist);
+  for ( std::string str; flists >> str; ) {
+    fAdditionalFiles.push_back(gSystem->BaseName(str.c_str()));
+    if ( std::find(fAdditionalFiles.begin(), fAdditionalFiles.end(), str) == fAdditionalFiles.end() ) {
+      fSearchPaths.push_back(gSystem->DirName(gSystem->ExpandPathName(str.c_str())));
+    }
+  }
+}
+
+//_______________________________________________________
 Bool_t AliTaskSubmitter::SetAliPhysicsBuildDir ( const char* aliphysicsBuildDir )
 {
   /// Setup aliphysics build dir
@@ -893,17 +909,16 @@ Bool_t AliTaskSubmitter::SetMode ( const char* runMode, const char* analysisMode
 }
 
 //_______________________________________________________
-void AliTaskSubmitter::SetSearchPaths ( const char* searchPath )
-{
-  /// Set space-separated path list where it searches for additional source files
-  fSearchPaths.clear();
-  std::string sPath(searchPath);
-  std::istringstream ssPath(sPath);
-  for ( std::string str; ssPath >> str; ) {
-    TString absPath = GetAbsolutePath(str.c_str());
-    fSearchPaths.push_back(absPath.Data());
-  }
-}
+// void AliTaskSubmitter::AddFile ( const char* filename )
+// {
+//   /// Add file
+//   std::string sPath(searchPath);
+//   std::istringstream ssPath(sPath);
+//   for ( std::string str; ssPath >> str; ) {
+//     TString absPath = GetAbsolutePath(str.c_str());
+//     fSearchPaths.push_back(absPath.Data());
+//   }
+// }
 
 //_______________________________________________________
 void AliTaskSubmitter::SetSoftVersion ( TString softVersion )
@@ -952,6 +967,7 @@ Bool_t AliTaskSubmitter::SetupAnalysis ( const char* runMode, const char* analys
                                         const char* analysisOptions,
                                         const char* libraries, const char* includePaths,
                                         const char* workDir,
+                                        const char* additionalFiles,
                                         Bool_t isMuonAnalysis )
 {
   /// Setup analysis
@@ -959,6 +975,7 @@ Bool_t AliTaskSubmitter::SetupAnalysis ( const char* runMode, const char* analys
   if ( ! SetInput(inputName,inputOptions) ) return kFALSE;
   SetSoftVersion(softVersion);
   SetLibraries(libraries,includePaths);
+  SetAdditionalFiles(additionalFiles);
   if ( ! isMuonAnalysis ) fLoadAllBranches = kTRUE;
   TString anOptions(analysisOptions);
   anOptions.ToUpper();
