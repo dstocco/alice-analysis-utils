@@ -1,6 +1,7 @@
 #!/bin/bash
 
 baseRemoteDir="http://aliqamu.web.cern.ch/aliqamu"
+baseRemoteDirEVS="http://aliqaevs.web.cern.ch/aliqaevs"
 triggerList=""
 authors='Cynthia Hadjidakis, Diego Stocco, Mohamad Tarhini'
 
@@ -88,17 +89,21 @@ function GetRemoteQAFiles()
 #      rm $tmpFile
 #    fi
     cd $relPath
-    curl -RO "${inputDir}/QA_muon_{tracker,trigger}.{pdf,root}"
+    curl -RO "${inputDir}/QA_muon_{tracker,trigger}.root"
     cd $currDir
   else
     rsync -avu --exclude="00*" --exclude="*.log" $inputDir/ $relPath/
   fi
 
-  trackerFile="$relPath/QA_muon_tracker.pdf"
+  trackerFile="$relPath/QA_muon_tracker.root"
   if [ ! -e "$trackerFile" ]; then
     echo "Problems in downloading files..."
     return 1
   fi
+
+  cd $relPath
+  curl -R -o "trending_evs.root" "${baseRemoteDirEVS}/$relPath/trending.root"
+  cd $currDir
 
   return 0
 }
@@ -135,26 +140,26 @@ function MakeQASlides() {
       triggerList=$(grep "%TriggerList=" $texFile | cut -d "=" -f2)
     fi
     if [ -z $triggerList ]; then
-      open "QA_muon_tracker.pdf"
+#      open "QA_muon_tracker.pdf"
       echo "Trigger list (comma separated) for $PWD"
       echo "(e.g. CINT7-B-NOPF-MUFAST,CMSL7-B-NOPF-MUFAST,CMSH7-B-NOPF-MUFAST,CMUL7-B-NOPF-MUFAST )"
       read triggerList
     fi
   fi
 
-  root -b -q $ALICE_PHYSICS/PWGPP/MUON/lite/MakeSlides.C+\(\"$period\"\,\"$pass\",\"$triggerList\",\""$authors"\",\"QA_muon_tracker.pdf\",\"QA_muon_trigger.pdf\",\"$texFile\"\)
-  issueFound=$(grep "page=-1" $texFile)
-  if [ "$issueFound" != "" ]; then
-    echo "Problem in $texFile : one page was not found :"
-    echo "$issueFound"
-    echo "Please check the file and fix the issue (e.g. by removing the slide)"
-    open $texFile
-    answer="n"
-    while [ "$answer" != "y" ]; do
-      echo "Press y when done"
-      read answer
-    done
-  fi
+  root -b -q $ALICE_PHYSICS/PWGPP/MUON/lite/MakeSlides.C+\(\"$period\"\,\"$pass\",\"$triggerList\",\""$authors"\",\"QA_muon_tracker.root\",\"QA_muon_trigger.root\",\"trending_evs.root\",\"$texFile\"\)
+#  issueFound=$(grep "page=-1" $texFile)
+#  if [ "$issueFound" != "" ]; then
+#    echo "Problem in $texFile : one page was not found :"
+#    echo "$issueFound"
+#    echo "Please check the file and fix the issue (e.g. by removing the slide)"
+#    open $texFile
+#    answer="n"
+#    while [ "$answer" != "y" ]; do
+#      echo "Press y when done"
+#      read answer
+#    done
+#  fi
 
   if [ ! -e "$texFile" ]; then
     echo "Something wrong: latex file not produced..."
