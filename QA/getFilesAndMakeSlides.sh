@@ -67,6 +67,31 @@ function SetupDir()
 }
 
 
+function GetRemoteFile()
+{
+  local inFile=$1
+  local outFile=$2
+
+  if [ ${inFile:0:4} = "http" ]; then
+    if [ -e $outFile ]; then
+      # Download only if local file is older than remote file
+      curl -z "$outFile" -R -o "$outFile" "$inFile"
+    else
+      curl -R -o "$outFile" "$inFile"
+    fi
+  else
+    rsync -avu "$inFile" "$outFile"
+  fi
+
+  if [ ! -e $outFile ]; then
+    echo "Problems in downloading file $inFile"
+    return 1
+  fi
+
+  return 0
+}
+
+
 function GetRemoteQAFiles()
 {
   #### Syncronize with remote directory
@@ -75,35 +100,14 @@ function GetRemoteQAFiles()
   local relPath="$2"
 
   local inputDir="${baseRemote}/$relPath"
-  #isNew=0
-  if [ ${baseRemoteDir:0:4} = "http" ]; then
-    local currDir="$PWD"
-#  fileList="QA_muon_tracker.pdf QA_muon_tracker.root QA_muon_trigger.pdf QA_muon_trigger.root"
-#  for ifile in $fileList; do
-#    tmpFile="tmp_$ifile"
-#    curl -R "$file" -o "$tmpFile"
-#    if [ $ifile -nt $tmpFile ]; then
-#      mv $tmpFile $ifile
-#      isNew=1
-#    else
-#      rm $tmpFile
-#    fi
-    cd $relPath
-    curl -RO "${inputDir}/QA_muon_{tracker,trigger}.root"
-    cd $currDir
-  else
-    rsync -avu --exclude="00*" --exclude="*.log" $inputDir/ $relPath/
-  fi
+  GetRemoteFile "$inputDir/QA_muon_tracker.root" "$relPath/QA_muon_tracker.root"
+  GetRemoteFile "$inputDir/QA_muon_trigger.root" "$relPath/QA_muon_trigger.root"
 
-  trackerFile="$relPath/QA_muon_tracker.root"
-  if [ ! -e "$trackerFile" ]; then
-    echo "Problems in downloading files..."
+  if [ $? -eq 1 ]; then
     return 1
   fi
 
-  cd $relPath
-  curl -R -o "trending_evs.root" "${baseRemoteDirEVS}/$relPath/trending.root"
-  cd $currDir
+  GetRemoteFile "${baseRemoteDirEVS}/$relPath/trending.root" "$relPath/trending_evs.root"
 
   return 0
 }
