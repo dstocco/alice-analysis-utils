@@ -49,12 +49,12 @@ function MakeDir()
 
 function GetPeriod()
 {
-  echo $(basename $(dirname "$subDir"))
+  echo "$(basename "$(dirname $subDir)")"
 }
 
 function GetPass()
 {
-  echo $(basename "$subDir")
+  echo "$(basename $subDir)"
 }
 
 function SetupDir()
@@ -135,8 +135,10 @@ function MakeQASlides() {
   fi
 
 #  BackupLatex
-  local period="$(GetPeriod)"
-  local pass="$(GetPass)"
+  local period
+  period="$(GetPeriod)"
+  local pass
+  pass="$(GetPass)"
 
   ##### Ask for a list of triggers
   if [ -z $triggerList ]; then
@@ -240,7 +242,8 @@ function SummaryFromExistingSlides()
   if [ ! -e $runListQA ]; then
     MakeRunListQA
   fi
-  local runListQAstr=$(cat $runListQA | xargs)
+  local runListQAstr
+  runListQAstr=$(cat $runListQA | xargs)
   local changeCommand=""
   sedCut='s/^[[:space:]]*//;s/\\/\\\\/g;s/\[/\\\[/g;s/\]/\\\]/g;s/\?/\\\?/;s:/:\\/:g;'
   for irun in $runListQAstr; do
@@ -275,8 +278,9 @@ function UpdateWithLogbookInfo()
     MakeRunListQA
   fi
 
-  local onlyInQA=$(comm -23 <(sort $runListQA) <(sort $runListLogbook) | xargs)
-  local onlyInLogbook=$(comm -13 <(sort $runListQA) <(sort $runListLogbook) | xargs)
+  local onlyInQA onlyInLogbook
+  onlyInQA=$(comm -23 <(sort $runListQA) <(sort $runListLogbook) | xargs)
+  onlyInLogbook=$(comm -13 <(sort $runListQA) <(sort $runListLogbook) | xargs)
 
   if [[ -z "$onlyInLogbook" && -z "$onlyInQA" ]]; then
     return 0;
@@ -331,9 +335,10 @@ function PrintRunSummary()
     MakeRunListQA
   fi
 
-  local inQAandLogbook=$(comm -12 <(sort $runListQA) <(sort $runListLogbook) | xargs)
-  local onlyInQA=$(comm -23 <(sort $runListQA) <(sort $runListLogbook) | xargs)
-  local onlyInLogbook=$(comm -13 <(sort $runListQA) <(sort $runListLogbook) | xargs)
+  local inQAandLogbook onlyInQA onlyInLogbook
+  inQAandLogbook=$(comm -12 <(sort $runListQA) <(sort $runListLogbook) | xargs)
+  onlyInQA=$(comm -23 <(sort $runListQA) <(sort $runListLogbook) | xargs)
+  onlyInLogbook=$(comm -13 <(sort $runListQA) <(sort $runListLogbook) | xargs)
 
   echo ""
   echo "Common runs (`echo ${inQAandLogbook} | wc -w | xargs`) :"
@@ -368,17 +373,17 @@ function main() {
 
   GetRemoteQAFiles "$baseRemoteDir" "$subDir"
   if [ $? -ne 0 ]; then
-    cd $baseLocalDir
+    cd $baseLocalDir || return 2
     return 1
   fi
-  cd $localDir
+  cd $localDir || return 2
   MakeQASlides
   if [ $? -ne 0 ]; then
-    cd $baseLocalDir
+    cd $baseLocalDir || return 2
     return 1
   fi
 
-  cd $localDir
+  cd $localDir || return 2
   MakeRunListQA
   MakeRunListLogbook "$(GetPeriod)"
 
@@ -389,9 +394,8 @@ function main() {
 
   PrintRunSummary
 
-  cd $baseLocalDir
+  cd $baseLocalDir || return 2
   return 0
 }
 
 main
-

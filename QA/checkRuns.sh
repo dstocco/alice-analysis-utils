@@ -14,8 +14,8 @@ function GetRunList()
   outFile="$2"
 
   touch $outFile
-    
-  inList=`grep -oE [0-9]+ $inFile | xargs`
+
+  inList=`grep -oE "[0-9]+" $inFile | xargs`
   for irun in $inList; do
     len=${#irun}
     if [[ $len == 6 || $len == 9 ]]; then
