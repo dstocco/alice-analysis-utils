@@ -75,9 +75,9 @@ function GetRemoteFile()
   if [ ${inFile:0:4} = "http" ]; then
     if [ -e $outFile ]; then
       # Download only if local file is older than remote file
-      curl -z "$outFile" -R -o "$outFile" "$inFile"
+      curl -f -z "$outFile" -R -o "$outFile" "$inFile"
     else
-      curl -R -o "$outFile" "$inFile"
+      curl -f -R -o "$outFile" "$inFile"
     fi
   else
     rsync -avu "$inFile" "$outFile"
