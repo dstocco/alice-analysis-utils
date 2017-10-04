@@ -18,7 +18,7 @@ fi
 
 
 runListLogbook=$(grep runTab $texFile | grep -v newcommand | grep -v notInLogColor | cut -d "}" -f 1 | cut -d "{" -f 2 | xargs)
-runListQA=$(grep runTab $texFile | grep -v newcommand | grep -v notInLogColor | grep -v errorColor | cut -d "}" -f 1 | xargs)
+runListQA=$(grep runTab $texFile | grep -v newcommand | grep -v notInLogColor | grep -v errorColor | grep -v badForPassColor | cut -d "}" -f 1 | xargs)
 
 runListGoodForQA=""
 for irun in $runListQA; do
