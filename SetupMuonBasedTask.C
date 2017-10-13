@@ -66,13 +66,13 @@ TObjArray* GetTerminateOptions ( TString taskOpt, Bool_t isMC )
     terminateList->AddAt(new TObjString(centr),2);
     terminateList->AddAt(new TObjString(furtherOpt),3);
   }
-  
+
 //  if ( terminateList ) {
 //    printf("Printing terminate list\n"); // REMEMBER TO CUT
 //    PrintNames("Terminate options", terminateList);
 //    printf(" ***************:\n");
 //  }
-  
+
   return terminateList;
 }
 
@@ -99,11 +99,11 @@ Bool_t SetMuonTrackCuts ( AliMuonTrackCuts* trackCuts )
 Bool_t SetMuonTerminate ( AliVAnalysisMuon* muonTask, Bool_t isMC, TString taskOptions )
 {
   TObjArray* terminateList = GetTerminateOptions(taskOptions,isMC);
-  
+
   if ( !  terminateList ) return kFALSE;
-  
+
   muonTask->SetTerminateOptions(terminateList->At(0)->GetName(),terminateList->At(1)->GetName(),terminateList->At(2)->GetName(),terminateList->At(3)->GetName());
-  
+
   return kTRUE;
 }
 
@@ -115,11 +115,10 @@ Bool_t SetupMuonBasedTask ( AliAnalysisTask* task, AliMuonEventCuts* eventCuts, 
 
   TString dataType = map->GetValue("dataType")->GetName();
   Bool_t isMC = ( dataType == "MC" );
-  
+
   SetMuonEventCuts(muonTask->GetMuonEventCuts(),eventCuts);
   SetMuonTrackCuts(muonTask->GetMuonTrackCuts());
   SetMuonTerminate(muonTask,isMC,taskOptions);
-  
+
   return kTRUE;
 }
-

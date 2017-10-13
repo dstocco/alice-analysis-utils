@@ -19,7 +19,7 @@ Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts
   TString trigClasses = "kINT7,kMB,kCentral,kSemiCentral,kMUS7:Lpt,kMUSPB:Lpt,kMUSH7:Hpt,kMUU7:Lpt2,kINT8,kMuonSingleLowPt8:Lpt,kMuonSingleHighPt8:Hpt,kMuonUnlikeLowPt8:Lpt2,kMuonUnlikeLowPt0:Lpt2";
 //  TString trigLevels = "";
   TString trigInputs = "";
-  
+
   if ( isMC ) {
 //    trigClasses = "ANY,CM*,MU*";
 //    trigLevels = "CMSNGL:Lpt,MUHigh:Hpt,CMULLO:LptLpt,CMULHI:HptHpt,CMLKLO:LptLpt,CMLKHI:HptHpt,MULow:Lpt,MUHigh:Hpt,MULU:LptLpt,MULL:LptLpt,MUHU:HptHpt,MUHL:HptHpt";
@@ -51,7 +51,7 @@ Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts
       trigInputs = "0MSL:17,0MSH:18,0MLL:19,0MUL:20";
     }
   }
-  
+
   if ( ! trigClasses.IsNull() ) eventCuts->SetTrigClassPatterns(trigClasses,trigInputs);
 //  if ( ! trigLevels.IsNull() ) eventCuts->SetTrigClassLevels(trigLevels);
 
@@ -60,7 +60,7 @@ Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts
 //  printf("Trigger levels: %s\n", trigLevels.Data());
 
   if ( trigClasses.IsNull() ) return kFALSE;
-    
+
   return kTRUE;
 }
 
@@ -68,14 +68,14 @@ Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts
 //_______________________________________
 Bool_t SetCentralityBins ( Bool_t useCentr, TString period, AliMuonEventCuts* eventCuts )
 {
-  
+
   TString sCentrBins = "";
-  if ( useCentr == kFALSE ) sCentrBins = "-5.,0.";
+  if ( useCentr == kFALSE ) sCentrBins = "-5.,105.";
   else if ( period == "LHC13d" || period == "LHC13e" || period == "LHC13f" ) {
     sCentrBins = "-5.,0.,2.,5.,20.,40.,60.,80.,100.,105.";
   }
   else return kFALSE;
-  
+
   TArrayD centrBins;
   TObjArray* centrBinsArr = sCentrBins.Tokenize(" ");
   for ( Int_t iarr=0; iarr<centrBinsArr->GetEntries(); iarr++ ) {
@@ -135,4 +135,3 @@ AliMuonEventCuts* BuildMuonEventCuts ( TMap* map )
 
   return eventCuts;
 }
-
