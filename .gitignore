@@ -3,7 +3,6 @@
 *.lo
 *.o
 *.obj
-*.pcm
 
 # Precompiled Headers
 *.gch
@@ -30,3 +29,7 @@
 
 # Compiled from cern-root
 *.d
+*.pcm
+
+# IDE objects
+.tags*
