@@ -3,7 +3,7 @@
 baseRemoteDir="http://aliqamu.web.cern.ch/aliqamu"
 baseRemoteDirEVS="http://aliqaevs.web.cern.ch/aliqaevs"
 triggerList=""
-authors='Cynthia Hadjidakis, Diego Stocco, Mohamad Tarhini'
+authors='Cynthia Hadjidakis, Diego Stocco, ChunLu Huang'
 
 optList="a:cst:"
 while getopts $optList option
