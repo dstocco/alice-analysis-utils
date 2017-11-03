@@ -304,7 +304,7 @@ std::string AliTaskSubmitter::GetGridDataPattern ( const char* queryString ) con
   fileName.insert(0,"*");
   std::string runNum = GetRunNumber(queryString);
   if ( ! runNum.empty() ) {
-    basePath.erase(basePath.begin(),basePath.begin()+basePath.find(runNum) + runNum.length()+1);
+    basePath.erase(basePath.begin(),basePath.begin()+basePath.find(runNum)+runNum.length());
     if ( ! basePath.empty() ) {
       if ( basePath.back() != '/' ) basePath.append("/");
       fileName.insert(0,basePath.c_str());
@@ -948,8 +948,8 @@ bool AliTaskSubmitter::SetInput ( const char* inputName, const char* inputOption
   fIsEmbed = ( sOpt.find("EMBED") != std::string::npos );
 
   if ( IsGrid() ) {
-    fGridDataDir = GetGridDataDir(fInputData[0].c_str());
-    fGridDataPattern = GetGridDataPattern(fInputData[0].c_str());
+    fGridDataDir = GetGridDataDir(checkString.c_str());
+    fGridDataPattern = GetGridDataPattern(checkString.c_str());
   }
 
   // Write input
@@ -1114,22 +1114,24 @@ bool AliTaskSubmitter::SetupTasks ()
     if ( outCode == -1 ) return false;
     else if ( outCode == 1 ) cfg.SetMacroArgs(macroArgs.c_str());
 
-    TList* lines = cfg.GetConfigMacro()->GetListOfLines();
-    TIter next(lines);
-    TObjString* objString = nullptr;
-    while ( (objString = static_cast<TObjString*>(next())) ) {
-      if ( ReplaceKeywords(objString) == -1 ) return false;
+    if ( cfg.GetConfigMacro() ) {
 
-      // Check if the task uses some utility macro (and copy it locally)
-      for ( auto& entry : fUtilityMacros ) {
-        std::string macroName = entry.first;
-        macroName.erase(macroName.find_last_of("."));
-        if ( objString->String().Contains(macroName.c_str()) ) {
-          entry.second = 1;
+      TList* lines = cfg.GetConfigMacro()->GetListOfLines();
+      TIter next(lines);
+      TObjString* objString = nullptr;
+      while ( (objString = static_cast<TObjString*>(next())) ) {
+        if ( ReplaceKeywords(objString) == -1 ) return false;
+
+        // Check if the task uses some utility macro (and copy it locally)
+        for ( auto& entry : fUtilityMacros ) {
+          std::string macroName = entry.first;
+          macroName.erase(macroName.find_last_of("."));
+          if ( objString->String().Contains(macroName.c_str()) ) {
+            entry.second = 1;
+          }
         }
       }
     }
-
     fPlugin->AddModule(&cfg);
   }
 
