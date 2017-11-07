@@ -3,7 +3,7 @@
 baseRemoteDir="http://aliqamu.web.cern.ch/aliqamu"
 baseRemoteDirEVS="http://aliqaevs.web.cern.ch/aliqaevs"
 triggerList=""
-authors='Cynthia Hadjidakis, Diego Stocco, ChunLu Huang'
+authors='Cynthia Hadjidakis, Diego Stocco, Chun-Lu Huang'
 
 optList="a:cst:"
 while getopts $optList option
@@ -181,7 +181,7 @@ function MakeQASlides() {
 function MakeRunListQA()
 {
   ##### Get analyzed runs from QA
-  grep "runTab" $texFile | grep -oE "{[0-9]+}" | sed 's/{//;s/}//' > $runListQA
+  grep "runTab" $texFile | grep -oE "\{[0-9]+\}" | sed 's/{//;s/}//' > $runListQA
 }
 
 function GetRunListQA()
