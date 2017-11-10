@@ -47,6 +47,29 @@ function MakeDir()
   fi
 }
 
+function OpenFile()
+{
+  local filename="$1"
+  local unameOut
+  unameOut="$(uname -s)"
+  local machine
+  unameOut="$(uname -s)"
+  case "${unameOut}" in
+    Linux*)     machine=Linux;;
+    Darwin*)    machine=Mac;;
+    *)          machine="UNKNOWN:${unameOut}"
+  esac
+  local openCommand=vim
+  if [[ "$machine" = "Mac" ]]; then
+    openCommand="open"
+  elif [ "$machine" = "Linux" ]; then
+    if [ -n "$EDITOR" ]; then
+      openCommand="$EDITOR"
+    fi
+  fi
+  $openCommand "$filename"
+}
+
 function GetPeriod()
 {
   echo "$(basename "$(dirname $subDir)")"
@@ -208,7 +231,7 @@ function MakeRunListLogbook()
   fi
 
   touch $runListLogbook
-  open "$runListLogbook"
+  OpenFile "$runListLogbook"
   answer="n"
   while [ "$answer" != "y" ]; do
     echo "Please write the run list from the logbook in $runListLogbook"
@@ -351,7 +374,6 @@ function PrintRunSummary()
   echo "${onlyInLogbook}" | xargs
 }
 
-
 function CompileLatex()
 {
   local compileTexLog="pdflatex.log"
@@ -361,7 +383,7 @@ function CompileLatex()
   pdflatex $texFile > $compileTexLog
   pdflatex $texFile >> $compileTexLog
 
-  open $texFile
+  OpenFile $texFile
 }
 
 function main() {
