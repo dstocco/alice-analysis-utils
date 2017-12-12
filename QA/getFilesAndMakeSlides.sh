@@ -171,7 +171,7 @@ function MakeQASlides() {
     if [ -z $triggerList ]; then
 #      open "QA_muon_tracker.pdf"
       echo "Trigger list (comma separated) for $PWD"
-      echo "(e.g. CINT7-B-NOPF-MUFAST,CMSL7-B-NOPF-MUFAST,CMSH7-B-NOPF-MUFAST,CMUL7-B-NOPF-MUFAST )"
+      echo "(e.g. CINT7-B-NOPF-MUFAST,CMSL7-B-NOPF-MUFAST,CMSH7-B-NOPF-MUFAST,CMUL7-B-NOPF-MUFAST,CMLL7-B-NOPF-MUFAST)"
       read triggerList
     fi
   fi
