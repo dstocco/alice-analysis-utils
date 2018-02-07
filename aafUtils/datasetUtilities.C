@@ -97,6 +97,7 @@ void getFileCollection ( TString inFilename, TString outFileCollection = "fileCo
   TString currSearch = "";
   TFileCollection outFc;
   outFc.SetName("dataset");
+  TString answer = "n";
   while ( (str = static_cast<TObjString*>(next())) ) {
     currSearch = Form(searchString.Data(),str->GetName());
     currSearch.ReplaceAll(";;",";");
@@ -116,13 +117,12 @@ void getFileCollection ( TString inFilename, TString outFileCollection = "fileCo
     delete fc;
 
     if ( stage && ! isStaged ) {
-      TString answer = "n";
       if ( ask ) {
-        printf("Are you really sure you want to stage the dataset? [y/n]");
-        TString answer = "";
+        printf("Are you really sure you want to stage the dataset? [y/n]\n");
         std::cin >> answer;
       }
       if ( answer == "y" ) {
+        printf("Dataset staging requested\n");
         gProof->RequestStagingDataSet(currSearch.Data());
       }
       ask = kFALSE;
