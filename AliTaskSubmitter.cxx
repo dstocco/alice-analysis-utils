@@ -483,7 +483,7 @@ bool AliTaskSubmitter::LoadProof() const
     std::string remotePar = ( fRunMode == kProofSaf ) ? "https://github.com/aphecetche/aphecetche.github.io/blob/master/page/saf3-usermanual/AliceVaf.par?raw=true" : "http://alibrary.web.cern.ch/alibrary/vaf/AliceVaf.par";
     mainPackage = gSystem->BaseName(remotePar.c_str());
     mainPackage.erase(mainPackage.find("?"));
-    std::cout << "Getting package" << remotePar << std::endl;
+    std::cout << "Getting package: " << remotePar << std::endl;
     TFile::Cp(remotePar.c_str(), mainPackage.c_str());
     if ( gSystem->AccessPathName(mainPackage.c_str()) ) {
       std::cout << "Error: cannot get " << mainPackage << " from " << remotePar << std::endl;
@@ -1193,7 +1193,10 @@ void AliTaskSubmitter::StartAnalysis () const
     //   fc->AddFromFile("dataset.txt");
     // }
     if ( fc ) mgr->StartAnalysis ("proof",fc);
-    else mgr->StartAnalysis("proof","dataset.txt");
+    else {
+      mgr->SetGridHandler(nullptr);
+      mgr->StartAnalysis("proof","dataset.txt");
+    }
   }
 }
 
