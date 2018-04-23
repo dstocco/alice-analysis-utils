@@ -480,11 +480,12 @@ bool AliTaskSubmitter::LoadProof() const
     list->Add(new TNamed("ALIROOT_ENABLE_ALIEN", "1"));
   std::string mainPackage = "";
   if ( fIsPodMachine ) {
-    std::string remotePar = ( fRunMode == kProofSaf ) ? "https://github.com/aphecetche/aphecetche.github.io/blob/master/page/saf3-usermanual/AliceVaf.par?raw=true" : "http://alibrary.web.cern.ch/alibrary/vaf/AliceVaf.par";
+    std::string remotePar = ( fRunMode == kProofSaf ) ? "https://github.com/aphecetche/hugo-aphecetche/blob/master/static/page/saf3-usermanual/AliceVaf.par?raw=true" : "http://alibrary.web.cern.ch/alibrary/vaf/AliceVaf.par";
     mainPackage = gSystem->BaseName(remotePar.c_str());
     mainPackage.erase(mainPackage.find("?"));
     std::cout << "Getting package: " << remotePar << std::endl;
-    TFile::Cp(remotePar.c_str(), mainPackage.c_str());
+    // TFile::Cp(remotePar.c_str(), mainPackage.c_str());
+    gSystem->Exec(Form("wget '%s' -O %s",remotePar.c_str(), mainPackage.c_str()));
     if ( gSystem->AccessPathName(mainPackage.c_str()) ) {
       std::cout << "Error: cannot get " << mainPackage << " from " << remotePar << std::endl;
       return false;
