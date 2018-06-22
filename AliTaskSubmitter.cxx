@@ -51,6 +51,7 @@ fAlienUsername(),
 fAliPhysicsBuildDir(),
 fGridDataDir(),
 fGridDataPattern(),
+fGridWorkingDir(),
 fPass(),
 fPeriod(),
 fPodOutDir(),
@@ -243,26 +244,33 @@ void AliTaskSubmitter::CreateAlienHandler ()
     std::cout << "This might be a custom production...but the plugin will not be able to handle it." << std::endl << std::endl;
   }
 
-  // Set grid work dir (tentatively)
-  std::string gridWorkDir = "analysis";
-  if ( fIsMC ) gridWorkDir = "mcAna";
-
-  std::string currDirName = gSystem->pwd();
-  currDirName.erase(0,currDirName.find_last_of("/")+1);
-  if ( ! fPeriod.empty() ) {
-    std::stringstream ss;
-    ss << "/" << fPeriod << "/" << currDirName;
-    gridWorkDir += ss.str();
-    std::cout << "WARNING: setting a custom grid working dir:" << gridWorkDir << std::endl;
-    fPlugin->SetGridWorkingDir(gridWorkDir.c_str());
-  }
-  else {
+  if ( fGridWorkingDir.empty() ) {
     std::cout << std::endl;
-    std::cout << "WARNING: GridWorkDir is not set. You have to do it in your macro:" << std::endl;
-    std::cout << "AliAnalysisAlien* plugin = static_cast<AliAnalysisAlien*>(AliAnalysisManager::GetAnalysisManager()->GetGridHandler());" << std::endl;
+    if ( fPeriod.empty() ) {
+      std::cout << "WARNING: GridWorkingDir is not set." << std::endl;
+    }
+    else {
+      // Set grid work dir (tentatively)
+      std::stringstream ss;
+      if ( fIsMC ) ss << "mcAna";
+      else ss << "analysis";
+
+      std::string currDirName = gSystem->pwd();
+      currDirName.erase(0,currDirName.find_last_of("/")+1);
+
+      ss << "/" << fPeriod << "/" << currDirName;
+      fGridWorkingDir = ss.str();
+      std::cout << "WARNING: setting a custom grid working dir:" << fGridWorkingDir << std::endl;
+    }
+
+    std::cout << " If you want to set it yourself, you have 2 ways to set it:" << std::endl;
+    std::cout << "1) with SetWorkingDir method of AliTaskSubmitter" << std::endl;
+    std::cout << "2) In your macro with: " << std::endl;
+    std::cout << " AliAnalysisAlien* plugin = static_cast<AliAnalysisAlien*>(AliAnalysisManager::GetAnalysisManager()->GetGridHandler());" << std::endl;
     std::cout << "if ( plugin ) plugin->SetGridWorkingDir(\"workDirRelativeToHome\");" << std::endl << std::endl;
   }
 
+  fPlugin->SetGridWorkingDir(fGridWorkingDir.c_str());
   fPlugin->SetGridDataDir(fGridDataDir.c_str());
   fPlugin->SetDataPattern(fGridDataPattern.c_str());
 }
@@ -713,7 +721,7 @@ bool AliTaskSubmitter::SetupLocalWorkDir ( const char* cfgList )
       std::cout << "Directory " << fWorkDir << " must exist in kLocalTerminate mode " << std::endl;
       return false;
     }
-    gSystem->mkdir(fWorkDir.c_str());
+    gSystem->mkdir(fWorkDir.c_str(),true);
   }
 
   // Copy necessary add tasks and utility macros

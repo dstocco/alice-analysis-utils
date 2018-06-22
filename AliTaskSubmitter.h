@@ -56,6 +56,8 @@ public:
 
   /// Set Alien username (needed to connect to some proof clusters)
   bool SetAlienUsername ( const char* username = nullptr );
+  /// Set the grid working directory
+  void SetGridWorkingDir ( const char* gridWorkingDir ) { fGridWorkingDir = gridWorkingDir; }
   // void SetAdditionalFiles ( const char* fileList );
   bool SetAliPhysicsBuildDir ( const char* aliphysicsBuildDir = nullptr );
   bool SetInput ( const char* inputName, const char* inputOptions );
@@ -118,6 +120,7 @@ private:
   std::string fAliPhysicsBuildDir; //!<! Aliphysics build dir
   std::string fGridDataDir; //!<! Data dir for grid analysis
   std::string fGridDataPattern; //!<! Data pattern for grid analysis
+  std::string fGridWorkingDir; //!<! Grid working directory
   std::string fPass; //!<! Pass name
   std::string fPeriod; //!<! Period name
   std::string fPodOutDir; //!<! Pod out dir
