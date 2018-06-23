@@ -140,7 +140,7 @@ private:
   std::vector<std::string> fMacros; //!<! Macros
   std::vector<std::string> fPackages; //!<! List of PAR files
   std::vector<std::string> fSources; //!<! Analysis sources (cxx)
-  std::vector<AliAnalysisTaskCfg> fTasks; //!<! Analysis tasks
+  mutable std::vector<AliAnalysisTaskCfg> fTasks; //!<! Analysis tasks
   std::map<std::string,std::string> fKeywords; //!<! List of keywords
   std::map<std::string,int> fUtilityMacros; //!<! Utility macros
   TMap fMap; //!<! Map of values to be passed to macros (for backward compatibility)

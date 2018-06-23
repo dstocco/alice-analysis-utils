@@ -190,7 +190,7 @@ void AliTaskSubmitter::CreateAlienHandler ()
   fPlugin->SetAdditionalRootLibs("libGui.so libProofPlayer.so libXMLParser.so");
 
   std::stringstream extraLibs;
-  for ( auto& str : fLibraries ) extraLibs << str << " ";
+  for ( auto& str : fLibraries ) extraLibs << "lib" << str << ".so ";
 
   std::stringstream extraSrcs;
   for ( auto& str : fSources ) {
@@ -270,6 +270,7 @@ void AliTaskSubmitter::CreateAlienHandler ()
     std::cout << "if ( plugin ) plugin->SetGridWorkingDir(\"workDirRelativeToHome\");" << std::endl << std::endl;
   }
 
+  fPlugin->AddIncludePath("-I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
   fPlugin->SetGridWorkingDir(fGridWorkingDir.c_str());
   fPlugin->SetGridDataDir(fGridDataDir.c_str());
   fPlugin->SetDataPattern(fGridDataPattern.c_str());
@@ -427,14 +428,47 @@ bool AliTaskSubmitter::Load() const
   }
 
 
-  // Load the tasks in the plugin (and attach them to the manager)
-  if ( ! fPlugin->LoadModules() ) return false;
+  // // Load the tasks in the plugin (and attach them to the manager)
+  // See comment in SetupTasks.
+  // if ( ! fPlugin->LoadModules() ) return false;
+  for ( auto& cfg : fTasks ) {
+    if (!cfg.CheckLoadLibraries()) {
+      std::cout << "Error: Cannot load all libraries for module " << cfg.GetName() << std::endl;
+      return false;
+    }
+    // Execute the macro
+   if (cfg.ExecuteMacro()<0) {
+      std::cout << "Error: executing the macro " << cfg.GetMacroName() << " with arguments: " << cfg.GetMacroArgs() << " for module " << cfg.GetName() << " returned a negative value" << std::endl;
+      return false;
+   }
+   // Configure dependencies
+   if (cfg.GetConfigMacro() && cfg.ExecuteConfigMacro()<0) {
+      std::cout << "Error: there was an error executing the deps config macro " << cfg.GetConfigMacro()->GetTitle() << " for module " << cfg.GetName() << std::endl;
+      return kFALSE;
+   }
+  }
 
-  // If we are on grid, use the custom macro to setup the alien IO
-  if ( IsGrid() && ! fPeriod.empty() ) {
-    gInterpreter->ProcessLine(".L SetAlienIO.C+");
-    gInterpreter->ProcessLine(Form("TString inputOpts; SetAlienIO(inputOpts,\"%s\",(AliAnalysisAlien*)%p)",fPeriod.c_str(),fPlugin));
-    gSystem->Unload("SetAlienIO.C");
+  if ( IsGrid() ) {
+    // // In principle, the additional sources should be passed to the jdl
+    // // But the plugin does not do this and expects the sources to be included
+    // // in the additional libraries.
+    // // Unfortunately, the list of libraries is reset at LoadModules
+    // // and re-created from the module itself.
+    // // This piece of code restores the sources so that they can be written to jdl
+    // std::string from = ".cxx";
+    // for ( auto& str : fSources ) {
+    //   std::string header = str;
+    //   header.replace(str.find(from),from.length(),".h");
+    //   fPlugin->AddAdditionalLibrary(header.c_str());
+    //   fPlugin->AddAdditionalLibrary(str.c_str());
+    // }
+
+    // If we are on grid, use the custom macro to setup the alien IO
+    if ( ! fPeriod.empty() ) {
+      gInterpreter->ProcessLine(".L SetAlienIO.C+");
+      gInterpreter->ProcessLine(Form("TString inputOpts; SetAlienIO(inputOpts,\"%s\",(AliAnalysisAlien*)%p)",fPeriod.c_str(),fPlugin));
+      gSystem->Unload("SetAlienIO.C");
+    }
   }
 
 
@@ -470,11 +504,15 @@ bool AliTaskSubmitter::LoadProof() const
 
   std::string extraLibs = "";
   for ( auto& str : fLibraries ) {
-    TString currName = str.c_str();
-    if ( currName.BeginsWith("lib") ) currName.Remove(0,3);
-    currName.ReplaceAll(".so","");
     if ( ! extraLibs.empty() ) extraLibs.append(":");
-    extraLibs += currName.Data();
+    extraLibs += str;
+    // The AliAnalysisTaskCfg already strips lib and .so
+    // So the following code is not needed
+    // TString currName = str.c_str();
+    // if ( currName.BeginsWith("lib") ) currName.Remove(0,3);
+    // currName.ReplaceAll(".so","");
+    // if ( ! extraLibs.empty() ) extraLibs.append(":");
+    // extraLibs += currName.Data();
   }
 
   std::string alirootMode = "base";
@@ -520,13 +558,11 @@ bool AliTaskSubmitter::LoadProof() const
   }
 
   for ( auto& str : fSources ) {
-    std::cout << "Loading " << str << std::endl; // REMEMBER TO CUT
     gProof->Load(Form("%s+g",str.c_str()),notOnClient);
   }
 
   for ( auto& entry : fUtilityMacros ) {
     if ( entry.second == 1 ) {
-      std::cout << "Loading " << entry.first << std::endl; // REMEMBER TO CUT
       gProof->Load(Form("%s+g",entry.first.c_str()),notOnClient);
     }
   }
@@ -1141,7 +1177,11 @@ bool AliTaskSubmitter::SetupTasks ()
         }
       }
     }
-    fPlugin->AddModule(&cfg);
+    // When we add a module to the plugin, it takes over libraries, sources, etc.
+    // The modules works only if all of the code is in aliphysics,
+    // but it is not optimized for custom code to be deployed.
+    // So let's avoid the automatic module loading
+    // fPlugin->AddModule(&cfg);
   }
 
   return true;
