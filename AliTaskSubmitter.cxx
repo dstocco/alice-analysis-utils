@@ -47,6 +47,7 @@ fProofSplitPerRun(false),
 fFileType(kAOD),
 fProofNworkers(80),
 fRunMode(kLocal),
+fGridTestFiles(1),
 fAlienUsername(),
 fAliPhysicsBuildDir(),
 fGridDataDir(),
@@ -222,6 +223,7 @@ void AliTaskSubmitter::CreateAlienHandler ()
   fPlugin->SetNumberOfReplicas(2);
   fPlugin->SetDropToShell(kFALSE);
   fPlugin->SetCheckCopy(kFALSE); // Fixes issue with alien_CLOSE_SE
+  fPlugin->SetNtestFiles(fGridTestFiles);
 
   if ( fRunMode != kGridTerminate ) fPlugin->SetMergeViaJDL();
 

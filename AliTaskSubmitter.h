@@ -59,6 +59,7 @@ public:
   /// Set the grid working directory
   void SetGridWorkingDir ( const char* gridWorkingDir ) { fGridWorkingDir = gridWorkingDir; }
   // void SetAdditionalFiles ( const char* fileList );
+  void SetGridNtestFiles( int nTestFiles ) { fGridTestFiles = nTestFiles; }
   bool SetAliPhysicsBuildDir ( const char* aliphysicsBuildDir = nullptr );
   bool SetInput ( const char* inputName, const char* inputOptions );
   void SetIsPodMachine ( bool isPodMachine = true ) { fIsPodMachine = isPodMachine; }
@@ -116,6 +117,7 @@ private:
   int fFileType; //!<! File type
   int fProofNworkers; //!<! Proof N workers
   int fRunMode; //!<! Analysis mode
+  int fGridTestFiles; //!<! Number of test files for grid
   std::string fAlienUsername; //!<! Alien username
   std::string fAliPhysicsBuildDir; //!<! Aliphysics build dir
   std::string fGridDataDir; //!<! Data dir for grid analysis
