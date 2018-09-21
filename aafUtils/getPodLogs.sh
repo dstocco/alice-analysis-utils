@@ -4,7 +4,7 @@
 outDir="/tmp/proofLogs"
 if [ -e $outDir ]; then
   echo "Remove $outDir? [y/n]"
-  read answer
+  read -r answer
   if [ "$answer" = "y" ]; then
     rm -rf $outDir
   fi
@@ -15,13 +15,13 @@ fi
 
 proofServer="nansafmaster3.in2p3.fr"
 
-baseDir='/tmp/pod-log-$USER'
+baseDir="/tmp/pod-log-\$USER"
 condorPid=${2-'*'}
 workingNode=${1-'*'}
 
 logDir=$(gsissh -p 1975 -t "$proofServer" 'find '"$baseDir/$condorPid"' -type d -exec ls -td {} + | head -n 1')
 
-logDir=$(echo $logDir | tr -d '\r')
+logDir=$(echo "$logDir" | tr -d '\r')
 
 echo "Getting logs from: ${logDir}"
 
@@ -30,14 +30,15 @@ rsync -e 'gsissh -p 1975' "${proofServer}:${logDir}/proof_log.${workingNode}.tgz
 
 currDir=$PWD
 
-cd $outDir
-for archive in $(ls *.tgz); do
-  tar -zxf $archive 2>/dev/null
+cd "$outDir" || exit 1
+for archive in *.tgz; do
+  [[ -e $archive ]] || break
+  tar -zxf "$archive" 2>/dev/null
   find var -name "*.log" -exec mv {} ./ \;
   rm -rf var
 done
 
-cd $currDir
+cd "$currDir" || exit 1
 
 echo ""
 echo "Crash found in:"
