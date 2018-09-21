@@ -1,6 +1,11 @@
 #if !defined(__CINT__) || defined(__MAKECINT__)
 
-#include <Riostream.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
 
 // ROOT includes
 #include "TString.h"
@@ -13,6 +18,8 @@
 #include "TObjArray.h"
 #include "TObjString.h"
 #include "THashList.h"
+#include "TKey.h"
+#include "TTree.h"
 
 #include "TProof.h" // FIXME: see later
 #endif
@@ -207,6 +214,155 @@ void changeCollection ( TString inFilename, TString removeFiles/*, TString addFi
 
   outFc.SaveAs(outFilename.Data());
 }
+
+//______________________________________________________________________________
+bool IsFileGood(const char* filename, bool readTrees) 
+{
+  std::unique_ptr<TFile> file(TFile::Open(filename));
+  if ( file == nullptr || file->IsZombie() ) {
+    return false;
+  }
+
+  if ( file->TestBit(TFile::kRecovered) ) {
+    readTrees = true;
+  }
+
+  if ( ! readTrees ) {
+    return true;
+  }
+
+  TIter next(file->GetListOfKeys());
+  TKey* key;
+  while ( (key = static_cast<TKey*>(next())) ) {
+    std::string className = key->GetClassName();
+    if ( className == "TTree" ) {
+      TTree* tree = static_cast<TTree*>(file->Get(key->GetName()));
+      if ( ! tree ) {
+        return false;
+      }
+      Long64_t nEntries = tree->GetEntries();
+      for ( Long64_t ientry=0; ientry<nEntries; ++ientry ) {
+        if ( tree->GetEntry(ientry) < 0 ) {
+          return false;
+        }
+      }
+    } 
+  }
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool checkCollection(const char* inFilename, bool readTrees = true) 
+{
+  /// Check each file of the collection.
+  /// Remove them in case of problems
+  std::string expanded = gSystem->ExpandPathName(inFilename);
+
+  std::string newFilename = expanded;
+  newFilename.replace(expanded.find(".root"),5,"_modified.root");
+  if ( gSystem->AccessPathName(newFilename.data()) == 0 ) {
+    std::cout << "Output file " << newFilename << " already created. Overwrite? [y/n]" << std::endl;
+    std::string answer;
+    std::cin >> answer;
+    if ( answer != "y" ) {
+      std::cout << "Nothing done!" << std::endl;
+      return false;
+    }
+  }
+  std::unique_ptr<TFile> file(TFile::Open(expanded.data()));
+  TFileCollection* fc = static_cast<TFileCollection*>(file->Get("dataset"));
+  if ( ! fc ) {
+    printf("Fatal: cannot find dataset in %s\n",inFilename);
+    return false;
+  }
+
+  // Sometimes the algorithm can badly crash during the check
+  // In order not to lose everything, let's keep track of the last checked file
+  // as well as the bad files, so that we can restart the check from where we left
+  std::map<std::string,bool> fileMap;
+  std::string checkedFilesName = inFilename;
+  checkedFilesName.insert(0,"tmp_");
+  checkedFilesName.replace(checkedFilesName.find(".root"),5,".txt");
+  if ( gSystem->AccessPathName(checkedFilesName.data()) == 0) {
+    std::string line;
+    ifstream inFile(checkedFilesName);
+    while(std::getline(inFile,line)) {
+      bool isGood = false;
+      std::string fname;
+      auto idx = line.find(",");
+      if ( idx != std::string::npos ) {
+        fname = line.substr(0,idx);
+        isGood = std::atoi(line.substr(idx+1).data());
+      }
+      else {
+        fname = line;
+      }
+      fileMap[fname] = isGood;
+    }
+    inFile.close();
+  }
+
+  ofstream checkedFilesOut(checkedFilesName);
+
+  std::vector<TFileInfo> goodFiles;
+  Long64_t nFiles = fc->GetList()->GetEntries();
+  std::cout << "nFiles: " << nFiles << std::endl;
+  Long64_t showProgress = nFiles/10;
+  Long64_t nBad = 0;
+  Long64_t ifile = 0;
+  TFileInfo* info = 0x0;
+  TObject* obj = 0x0;
+  TIter next(fc->GetList());
+  while ( (info = static_cast<TFileInfo*>(next())) ) {
+    ++ifile;
+    if ( ifile % showProgress == 0 ) {
+      std::cout << "Checking file " << ifile << " / " << nFiles << std::endl;
+    }
+    std::string currentUrl = info->GetCurrentUrl()->GetUrl();
+    checkedFilesOut << currentUrl;
+    bool isOk = false;
+    const auto& found = fileMap.find(currentUrl.data());
+    if ( found != fileMap.end() ) {
+      isOk = found->second;
+    }
+    else {
+      checkedFilesOut.close();
+      isOk = IsFileGood(currentUrl.data(),readTrees);
+      checkedFilesOut.open(checkedFilesName, std::ofstream::out | std::ofstream::app);
+    }
+
+    checkedFilesOut << "," << isOk << "\n";
+
+    if ( isOk ) {
+      goodFiles.emplace_back(*info);
+    }
+    else {
+      ++nBad;
+    }
+  }
+
+  checkedFilesOut.close();
+
+  if ( nBad == 0 ) {
+    std::cout << "All files good: nothing done" << std::endl;
+    return true;
+  }
+
+  std::cout << "Found " << nBad << " bad files\n";
+  std::cout << "Removing them in " << newFilename << std::endl;
+
+  TFileCollection outFc;
+  outFc.SetName(fc->GetName());
+  for ( auto& finfo : goodFiles ) {
+    outFc.Add(&finfo);
+  }
+  outFc.SaveAs(newFilename.data());
+
+  gSystem->Exec(Form("rm %s",checkedFilesName.data()));
+  return false;
+}
+
 
 
 //______________________________________________________________________________
