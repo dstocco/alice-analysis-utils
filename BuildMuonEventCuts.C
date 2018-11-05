@@ -14,9 +14,14 @@
 #endif
 
 //_______________________________________
-Bool_t SetTriggerInfo ( TString period, Bool_t isMC, AliMuonEventCuts* eventCuts )
+Bool_t SetTriggerInfo ( TString period, Bool_t isMC, Bool_t isPhysSel, AliMuonEventCuts* eventCuts )
 {
   TString trigClasses = "kINT7,kMB,kCentral,kSemiCentral,kMUS7:Lpt,kMUSPB:Lpt,kMUSH7:Hpt,kMUU7:Lpt2,kINT8,kMuonSingleLowPt8:Lpt,kMuonSingleHighPt8:Hpt,kMuonUnlikeLowPt8:Lpt2,kMuonUnlikeLowPt0:Lpt2";
+
+  if ( ! isPhysSel ) {
+    trigClasses = "CINT7-B-NOPF-MUFAST,CINT7-B-NOPF-ALLNOTRD,CMSL7-B-NOPF-MUFAST:Lpt,CMSH7-B-NOPF-MUFAST:Hpt,CMUL7-B-NOPF-MUFAST:Lpt2,CMLL7-B-NOPF-MUFAST:Lpt2";
+  }
+
 //  TString trigLevels = "";
   TString trigInputs = "";
 
@@ -107,17 +112,17 @@ AliMuonEventCuts* BuildMuonEventCuts ( TMap* map )
 {
   TString period = map->GetValue("period")->GetName();
   TString dataType = map->GetValue("dataType")->GetName();
-  Bool_t isMC = ( dataType == "MC" );
   TString mcDetails = map->GetValue("mcDetails")->GetName();
+  TString physSel = map->GetValue("physicsSelection")->GetName();
+  Bool_t isMC = ( dataType == "MC" );
+  Bool_t mcTrigger = ( isMC && mcDetails != "EMBED" );
+  Bool_t isPhysSel = ( physSel == "YES" );
 
   AliMuonEventCuts* eventCuts = new AliMuonEventCuts("autoEvtCuts","autoEvtCuts");
-  Bool_t mcTrigger = ( isMC && mcDetails != "EMBED" );
-  SetTriggerInfo(period,mcTrigger,eventCuts);
+  SetTriggerInfo(period,mcTrigger,isPhysSel,eventCuts);
 
   UInt_t filterMask = AliMuonEventCuts::kSelectedTrig;
-
-  TString physSel = map->GetValue("physicsSelection")->GetName();
-  if ( physSel == "YES" ) filterMask |= AliMuonEventCuts::kPhysicsSelected;
+  if ( isPhysSel ) filterMask |= AliMuonEventCuts::kPhysicsSelected;
 
   TString centr = map->GetValue("centrality")->GetName();
   Bool_t useCentr = kTRUE;
